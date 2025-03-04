@@ -28,10 +28,12 @@ import com.example.doancoso3.data.CartItem
 import com.example.doancoso3.viewmodel.CartViewModel
 
 @Composable
-fun CartScreen(cartViewModel: CartViewModel, navController: NavController) {
-    val items = cartViewModel.cartItems // Không cần .value nữa vì đang dùng StateList
+fun CartScreen(cartViewModel: CartViewModel, navController: NavController, userId: Int){
+    val items = cartViewModel.cartItems
     val totalPrice = items.sumOf { it.quantity * it.product.GiaTien }
-
+    LaunchedEffect(userId) {
+        cartViewModel.loadCartItems(userId)
+    }
     Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
         // Tiêu đề
         Row(
@@ -60,7 +62,7 @@ fun CartScreen(cartViewModel: CartViewModel, navController: NavController) {
         } else {
             LazyColumn(modifier = Modifier.weight(1f)) {
                 items(items) { item ->
-                    CartItemBox(item = item, cartViewModel = cartViewModel)
+                    CartItemBox(item = item, cartViewModel = cartViewModel, userId = userId)
                     Divider(color = Color.Gray, thickness = 1.dp)
                 }
             }
@@ -78,7 +80,7 @@ fun CartScreen(cartViewModel: CartViewModel, navController: NavController) {
 
         // Nút thanh toán
         Button(
-            onClick = { /* Xử lý thanh toán */ },
+            onClick = {  navController.navigate("checkoutScreen/{userId}") },
             modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
             shape = RoundedCornerShape(8.dp),
             colors = ButtonDefaults.buttonColors(backgroundColor = Color.Black)
@@ -90,7 +92,7 @@ fun CartScreen(cartViewModel: CartViewModel, navController: NavController) {
 
 
 @Composable
-fun CartItemBox(item: CartItem, cartViewModel: CartViewModel) {
+fun CartItemBox(item: CartItem, cartViewModel: CartViewModel, userId: Int) {
     Box(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
         Row(
             verticalAlignment = Alignment.Top,
@@ -108,25 +110,25 @@ fun CartItemBox(item: CartItem, cartViewModel: CartViewModel) {
                 Text(text = " ${formatCurrency(item.product.GiaTien)}", fontSize = 14.sp, color = Color.Gray)
 
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    IconButton(onClick = { cartViewModel.decreaseQuantity(item) }) {
+                    IconButton(onClick = {  cartViewModel.decreaseQuantity(userId, item) }) {
                         Text(text = "-", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color.Black)
                     }
 
                     Text(text = item.quantity.toString(), fontSize = 16.sp, fontWeight = FontWeight.Bold)
 
-                    IconButton(onClick = { cartViewModel.increaseQuantity(item) }) {
+                    IconButton(onClick = { cartViewModel.increaseQuantity(userId, item) }) {
                         Text(text = "+", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color.Black)
                     }
                 }
             }
 
-            IconButton(onClick = { cartViewModel.removeFromCart(item) }) {
-                Image(
-                    painter = painterResource(id = R.drawable.ic_delete),
-                    contentDescription = "Delete",
-                    modifier = Modifier.size(24.dp)
-                )
-            }
+                IconButton(onClick = {cartViewModel.removeFromCart(item.userId, item.product.TenSP)}) {
+                    Image(
+                        painter = painterResource(id = R.drawable.ic_delete),
+                        contentDescription = "Delete",
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
         }
     }
 }

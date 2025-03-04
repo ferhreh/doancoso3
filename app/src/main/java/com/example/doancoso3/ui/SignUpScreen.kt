@@ -29,7 +29,7 @@ fun SignUpScreen(navController: NavHostController) {
 
     val context = LocalContext.current
     val dbHelper = CopyDbHelper(context)
-    val userDb = dbHelper.getUserDb()
+    val userDb = remember { dbHelper.getUserDb(context) }
     Column(
         modifier = Modifier
             .fillMaxSize()

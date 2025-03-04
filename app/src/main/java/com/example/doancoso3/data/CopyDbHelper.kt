@@ -6,13 +6,14 @@ import java.io.File
 import java.io.FileOutputStream
 import android.database.sqlite.SQLiteOpenHelper
 import com.example.doancoso3.model.Product
+import com.example.doancoso3.viewmodel.CartViewModel
 
 class CopyDbHelper(private val context: Context): SQLiteOpenHelper(context, DB_NAME, null, DB_VERSION)  {
     companion object{
 
         private val DB_NAME="doancoso3.db"
         private const val TABLE_FAVORITES = "favorites"
-
+        const val TABLE_CART = "Cart"
         private const val DB_VERSION = 1
 
     }
@@ -40,9 +41,12 @@ class CopyDbHelper(private val context: Context): SQLiteOpenHelper(context, DB_N
         outputStream.close()
         inputStream.close()
     }
-    fun getUserDb(): UserDb {
+    fun getCartViewModel(): CartViewModel {
+        return CartViewModel(this)
+    }
+    fun getUserDb(context: Context): UserDb {
         val db = openDatabase()
-        return UserDb(db)
+        return UserDb(context, db) // ✅ Truyền đầy đủ context và db
     }
     fun getProductDb(): ProductDb {
         val db = openDatabase()

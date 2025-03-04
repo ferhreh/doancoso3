@@ -1,5 +1,6 @@
 package com.example.doancoso3.ui
 
+import android.content.Context
 import android.widget.Toast
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -32,7 +33,7 @@ import androidx.compose.ui.text.input.VisualTransformation
 fun LoginScreen(navController: NavHostController) {
     val context = LocalContext.current
     val dbHelper = CopyDbHelper(context)
-    val userDb = dbHelper.getUserDb()
+    val userDb = dbHelper.getUserDb(context)
 
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
@@ -98,8 +99,17 @@ fun LoginScreen(navController: NavHostController) {
             Button(
                 onClick = {
                     if (userDb.checkUser(email, password)) {
-                        Toast.makeText(context, "Đăng nhập thành công", Toast.LENGTH_SHORT).show()
-                        navController.navigate("home_screen") // Chuyển sang màn hình chính
+                        val userId = userDb.getUserId(email, password)
+
+                        if (userId != -1) {
+                            val sharedPreferences = context.getSharedPreferences("USER_PREFS", Context.MODE_PRIVATE)
+                            val editor = sharedPreferences.edit()
+                            editor.putInt("USER_ID", userId)
+                            editor.apply()
+
+                            Toast.makeText(context, "Đăng nhập thành công", Toast.LENGTH_SHORT).show()
+                            navController.navigate("home_screen/$userId")
+                        }
                     } else {
                         Toast.makeText(context, "Email hoặc mật khẩu không đúng", Toast.LENGTH_SHORT).show()
                     }

@@ -5,7 +5,9 @@ import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.viewModels
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.tooling.preview.Preview
 import com.example.doancoso3.ui.theme.Doancoso3Theme
 import androidx.navigation.compose.NavHost
@@ -15,34 +17,35 @@ import com.example.doancoso3.data.CopyDbHelper
 import com.example.doancoso3.model.Product
 import com.example.doancoso3.viewmodel.CartViewModel
 import androidx.lifecycle.ViewModelProvider
+import com.example.doancoso3.viewmodel.CartViewModelFactory
 import com.example.doancoso3.viewmodel.FavoritesViewModel
 import com.example.doancoso3.viewmodel.FavoritesViewModelFactory
 
 class MainActivity : ComponentActivity() {
-    private var db: CopyDbHelper? = null
-    private val products = mutableListOf<Product>()
-    private lateinit var cartViewModel: CartViewModel
+    private var userId: Int = 0 // Giá trị mặc định
+    private val dbHelper: CopyDbHelper by lazy { CopyDbHelper(this) }
+    private val cartViewModel: CartViewModel by viewModels { CartViewModelFactory(dbHelper) }
     private lateinit var favoritesViewModel: FavoritesViewModel
-
+    private val products = mutableListOf<Product>()
+    private var db: CopyDbHelper? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        userId = intent?.getIntExtra("USER_ID", 0) ?: 0
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        cartViewModel = ViewModelProvider(this).get(CartViewModel::class.java)
-        // Khởi tạo CopyDbHelper
-        val dbHelper = CopyDbHelper(this)
+
         dbHelper.openDatabase() // Đảm bảo cơ sở dữ liệu đã mở trước khi sử dụng
 
-        // Khởi tạo ViewModelFactory và ViewModel
+        // Khởi tạo FavoritesViewModel
         val factory = FavoritesViewModelFactory(dbHelper)
         favoritesViewModel = ViewModelProvider(this, factory).get(FavoritesViewModel::class.java)
+
         setContent {
             Doancoso3Theme {
                 AppContent()
             }
         }
-        db = CopyDbHelper(this)
-        db?.openDatabase()
+        db = dbHelper
     }
 
     @Composable
@@ -51,25 +54,35 @@ class MainActivity : ComponentActivity() {
         NavHost(navController = navController, startDestination = "login") {
             composable("login") { LoginScreen(navController) }
             composable("signup") { SignUpScreen(navController) }
-            composable("home_screen") { HomeScreen(navController) }
-            composable("productDetail/{productId}") { backStackEntry ->
-                val productId = backStackEntry.arguments?.getString("productId")
-                val product = findProductById(productId)
+            composable("home_screen/{userId}") { backStackEntry ->
+                val userId = backStackEntry.arguments?.getString("userId")?.toIntOrNull() ?: 0
+                HomeScreen(navController, userId)
+            }
+            composable("productDetail/{productId}/{userId}") { backStackEntry ->
+                val productId = backStackEntry.arguments?.getString("productId")?.toIntOrNull()
+                val userId = backStackEntry.arguments?.getString("userId")?.toIntOrNull() ?: 0
+
+                val product = productId?.let { findProductById(it.toString()) }
 
                 if (product != null) {
-                    ProductDetailScreen(product, cartViewModel, favoritesViewModel, navController)
-
+                    ProductDetailScreen(userId, product, cartViewModel, favoritesViewModel, navController)
                 } else {
-                    navController.navigate("home_screen") {
-                        popUpTo("home_screen") { inclusive = true }
+                    navController.navigate("home_screen/$userId") {
+                        popUpTo("home_screen/$userId") { inclusive = true }
                     }
                 }
             }
-            composable("cartScreen") {
-                CartScreen(cartViewModel, navController)
+            composable("cartScreen/{userId}") { backStackEntry ->
+                val userId = backStackEntry.arguments?.getString("userId")?.toIntOrNull() ?: 0
+                CartScreen(cartViewModel, navController, userId)
             }
-            composable("favorite_screen") {
-                FavoriteScreen(favoritesViewModel, cartViewModel, navController)
+            composable("favorite_screen/{userId}") { backStackEntry ->
+                val userId = backStackEntry.arguments?.getString("userId")?.toIntOrNull() ?: 0
+                FavoriteScreen(userId, favoritesViewModel, cartViewModel, navController)
+            }
+            composable("checkoutScreen/{userId}") { backStackEntry ->
+                val userId = backStackEntry.arguments?.getString("userId")?.toIntOrNull() ?: 0
+                CheckoutScreen(navController, cartViewModel, userId)
             }
         }
     }

@@ -1,13 +1,17 @@
 package com.example.doancoso3.ui
 
+import android.util.Log
 import androidx.compose.foundation.layout.Column
 import androidx.compose.runtime.Composable
-import com.example.doancoso3.data.CartItem
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.*
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -24,13 +28,14 @@ import com.example.doancoso3.viewmodel.FavoritesViewModel
 
 @Composable
 fun FavoriteScreen(
+    userId: Int,
     favoritesViewModel: FavoritesViewModel,
     cartViewModel: CartViewModel,
     navController: NavController
 ) {
 
     val favoriteItems = favoritesViewModel.favorites.collectAsStateWithLifecycle()
-
+    var selectedNavItem by remember { mutableStateOf(0) }
     Column(modifier = Modifier.fillMaxSize()) {
         // Thanh tiêu đề
         Row(
@@ -54,7 +59,7 @@ fun FavoriteScreen(
                 fontWeight = FontWeight.Bold
             )
 
-            IconButton(onClick = { navController.navigate("cart_screen") }) {
+            IconButton(onClick = { navController.navigate("cartScreen/$userId") }) {
                 Image(
                     painter = painterResource(id = R.drawable.cart_icon),
                     contentDescription = "Shopping Cart",
@@ -71,14 +76,12 @@ fun FavoriteScreen(
                     product = product,
                     onRemove = { favoritesViewModel.removeFromFavorites(product) },
                     onAddToCart = {
-                        cartViewModel.addToCart(product, 1)
+                        cartViewModel.addToCart(userId, product, 1)
                         favoritesViewModel.removeFromFavorites(product)
                     }
                 )
             }
         }
-
-
 
         // Nút "Add all to my cart"
         Box(
@@ -90,10 +93,10 @@ fun FavoriteScreen(
             Button(
                 onClick = {
                     favoriteItems.value.forEach { product ->
-                        cartViewModel.addToCart(product, 1) // Truyền product và quantity thay vì CartItem
-                        favoritesViewModel.removeFromFavorites(product) // Xóa khỏi danh sách yêu thích
+                        cartViewModel.addToCart(userId, product, 1) // Thêm userId
+                        favoritesViewModel.removeFromFavorites(product)
                     }
-                    navController.navigate("cartScreen")
+                    navController.navigate("cartScreen/$userId")
                 },
                 modifier = Modifier.fillMaxWidth(),
                 colors = ButtonDefaults.buttonColors(backgroundColor = Color.Black)
@@ -102,20 +105,29 @@ fun FavoriteScreen(
             }
         }
 
-
         // Thanh điều hướng
         BottomNavigationBar(
-            selectedIndex = 1,
+            selectedIndex = selectedNavItem,
             onItemSelected = { index ->
-                // Xử lý khi người dùng chọn một tab
-                when (index) {
-                    0 -> navController.navigate("home_screen")
-                    1 -> navController.navigate("favorite_screen")
-                    2 -> navController.navigate("notification_screen")
-                    3 -> navController.navigate("profile_screen")
+                selectedNavItem = index
+                val route = when (index) {
+                    0 -> "home_screen/$userId"
+                    1 -> "favorite_screen/$userId"
+                    2 -> "notification_screen/$userId"
+                    3 -> "profile_screen/$userId"
+                    else -> "home_screen/$userId"
+                }
+                try {
+                    navController.navigate(route) {
+                        launchSingleTop = true
+                        restoreState = true
+                    }
+                } catch (e: Exception) {
+                    Log.e("NavigationError", "Error navigating to $route: ${e.message}")
                 }
             },
-            navController = navController // Truyền navController ở đây
+            navController = navController,
+            userId = userId
         )
     }
 }

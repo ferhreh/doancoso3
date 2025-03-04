@@ -49,7 +49,7 @@ import com.example.doancoso3.viewmodel.FavoritesViewModel
 
 
 @Composable
-fun ProductDetailScreen(product: Product, cartViewModel: CartViewModel, favoritesViewModel: FavoritesViewModel, navController: NavController) {
+fun ProductDetailScreen( userId: Int,product: Product, cartViewModel: CartViewModel, favoritesViewModel: FavoritesViewModel, navController: NavController) {
     val quantity = remember { mutableStateOf(1) } // Sử dụng mutableStateOf thay cho mutableIntStateOf
     val totalPrice by remember { derivedStateOf { product.GiaTien * quantity.value } }
     val context = LocalContext.current
@@ -213,8 +213,8 @@ fun ProductDetailScreen(product: Product, cartViewModel: CartViewModel, favorite
 
             Button(
                 onClick = {
-                    cartViewModel.addToCart(product, quantity.value) // Thêm sản phẩm vào giỏ hàng
-                    navController.navigate("cartScreen") // Chuyển đến trang CartScreen
+                    cartViewModel.addToCart(userId, product, quantity.value) // Thêm sản phẩm vào giỏ hàng
+                    navController.navigate("cartScreen/$userId") // Chuyển đến trang CartScreen
                 },
                 modifier = Modifier
                     .weight(1f)

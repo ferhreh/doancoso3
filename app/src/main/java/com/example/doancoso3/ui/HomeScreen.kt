@@ -54,7 +54,7 @@ val filters = listOf(
 )
 
 @Composable
-fun HomeScreen(navController: NavHostController) {
+fun HomeScreen(navController: NavHostController, userId: Int) {
     var selectedFilter by remember { mutableStateOf(filters[0]) }
     var selectedNavItem by remember { mutableStateOf(0) }
 
@@ -84,14 +84,16 @@ fun HomeScreen(navController: NavHostController) {
 
                     // Điều hướng đến màn hình tương ứng
                     when (index) {
-                        0 -> navController.navigate("home_screen")
-                        1 -> navController.navigate("favorite_screen") // Điều hướng đến FavoriteScreen
-                        2 -> navController.navigate("notification_screen")
-                        3 -> navController.navigate("profile_screen")
+                        0 -> navController.navigate("home_screen/$userId")
+                        1 -> navController.navigate("favorite_screen/$userId") // Truyền userId vào route
+                        2 -> navController.navigate("notification_screen/$userId")
+                        3 -> navController.navigate("profile_screen/$userId")
                     }
                 },
-                navController = navController // Truyền NavController vào
+                navController = navController,
+                userId = userId // Thêm tham số userId
             )
+
         }
     ) { innerPadding ->
         Column(modifier = Modifier
@@ -116,7 +118,7 @@ fun HomeScreen(navController: NavHostController) {
                     Text(text = "BEAUTIFUL", style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold, fontSize = 28.sp), color = Color.Black)
                 }
                 // Biểu tượng giỏ hàng
-                IconButton(onClick = { /* Giỏ hàng */ }) {
+                IconButton(onClick = { navController.navigate("cartScreen/$userId")}) {
                     Image(painter = painterResource(id = R.drawable.cart_icon), contentDescription = "Shopping Cart", modifier = Modifier.padding(end = 16.dp).size(28.dp))
                 }
             }
@@ -130,7 +132,7 @@ fun HomeScreen(navController: NavHostController) {
             // Hiển thị sản phẩm
             LazyVerticalGrid(columns = GridCells.Fixed(2), contentPadding = PaddingValues(16.dp), modifier = Modifier.padding(8.dp)) {
                 items(filteredProducts) { item ->
-                    HomeItem(item, navController) // Truyền NavController vào HomeItem
+                    HomeItem(item, navController,userId) // Truyền NavController vào HomeItem
                 }
             }
         }
@@ -138,7 +140,7 @@ fun HomeScreen(navController: NavHostController) {
 }
 
 @Composable
-fun HomeItem(item: Product, navController: NavHostController) {
+fun HomeItem(item: Product, navController: NavHostController, userId: Int) {
     Box(
         modifier = Modifier
             .padding(top=0.dp)
@@ -149,7 +151,7 @@ fun HomeItem(item: Product, navController: NavHostController) {
             .width(340.dp)
             .height(260.dp)
             .clickable {
-                navController.navigate("productDetail/${item.ID}") // Điều hướng đến ProductDetailScreen
+                navController.navigate("productDetail/${item.ID}/$userId") // Điều hướng đến ProductDetailScreen
             }
     ) {
         Surface(
@@ -255,17 +257,17 @@ fun FilterChip(filter: Filter, onClick: () -> Unit) {
     }
 }
 
-data class BottomNavItem(val label: String, val icon: ImageVector, val route: String)
+data class BottomNavItem(val label: String, val icon: ImageVector, val route: String,)
 
     @Composable
-    fun BottomNavigationBar(selectedIndex: Int, onItemSelected: (Int) -> Unit,navController: NavController) {
+    fun BottomNavigationBar(selectedIndex: Int, onItemSelected: (Int) -> Unit, navController: NavController, userId: Int) {
         BottomNavigation(
             backgroundColor = Color.White,
             contentColor = Color.Black
         ) {
             val items = listOf(
-                BottomNavItem("Trang chủ", Icons.Filled.Home, "home_screen"),
-                BottomNavItem("Yêu thích", Icons.Filled.Favorite, "favorite_screen"),
+                BottomNavItem("Trang chủ", Icons.Filled.Home, "home_screen/$userId"),
+                BottomNavItem("Yêu thích", Icons.Filled.Favorite,  "favorite_screen/$userId"),
                 BottomNavItem("Thông báo", Icons.Filled.Notifications, "notification_screen"),
                 BottomNavItem("Cá nhân", Icons.Filled.Person, "profile_screen")
             )
