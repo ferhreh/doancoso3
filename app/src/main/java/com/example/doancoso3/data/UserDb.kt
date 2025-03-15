@@ -14,28 +14,6 @@ class UserDb(private val context: Context, private val db: SQLiteDatabase) {
         private const val COLUMN_USERNAME = "name"
     }
 
-    // Phương thức để lấy danh sách người dùng từ cơ sở dữ liệu
-//    fun getUsers(): List<User> {
-//        val users = mutableListOf<User>()
-//        val cursor = db.rawQuery("SELECT * FROM $TABLE_USERS", null)
-//        cursor.use {
-//            while (it.moveToNext()) {
-//                val emailIndex = it.getColumnIndex(COLUMN_EMAIL)
-//                val passwordIndex = it.getColumnIndex(COLUMN_PASSWORD)
-//                val usernameIndex = it.getColumnIndex(COLUMN_USERNAME)
-//
-//                val email = it.getString(emailIndex)
-//                val password = it.getString(passwordIndex)
-//                val username = it.getString(usernameIndex)
-//
-//                // Thêm đối tượng User vào danh sách
-//                users.add(User(username, email, password))
-//            }
-//        }
-//        return users
-//    }
-
-
     fun getUserId(email: String, password: String): Int {
         val cursor = db.rawQuery("SELECT id FROM User WHERE Email = ? AND Password = ?", arrayOf(email, password))
 

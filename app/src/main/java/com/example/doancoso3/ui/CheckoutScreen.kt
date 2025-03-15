@@ -2,6 +2,7 @@ package com.example.doancoso3.ui
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -21,14 +22,16 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.doancoso3.R
 import com.example.doancoso3.data.CartItem
+import com.example.doancoso3.model.UserAddress
+import com.example.doancoso3.viewmodel.AddressViewModel
 import com.example.doancoso3.viewmodel.CartViewModel
 
 @Composable
-fun CheckoutScreen(navController: NavController, cartViewModel: CartViewModel, userId: Int) {
+fun CheckoutScreen(navController: NavController, cartViewModel: CartViewModel, userId: Int, addressViewModel: AddressViewModel) {
     val cartItems = cartViewModel.cartItems
     val shippingFee = 5000.0 // Phí ship cố định
     val totalPrice = cartItems.sumOf { it.product.GiaTien * it.quantity } + shippingFee
-
+    val selectedAddress by addressViewModel.selectedAddress.collectAsState()
     Column(
         modifier = Modifier.fillMaxSize()
     ) {
@@ -55,7 +58,7 @@ fun CheckoutScreen(navController: NavController, cartViewModel: CartViewModel, u
             Spacer(modifier = Modifier.height(16.dp))
 
             // Địa chỉ nhận hàng
-            DeliveryAddressSection()
+            DeliveryAddressSection(navController = navController, userId = userId, selectedAddress = selectedAddress)
 
             Spacer(modifier = Modifier.height(16.dp))
             Text(
@@ -64,7 +67,6 @@ fun CheckoutScreen(navController: NavController, cartViewModel: CartViewModel, u
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.padding(bottom = 8.dp)
             )
-
             // Danh sách sản phẩm cuộn được
             Box(
                 modifier = Modifier
@@ -140,11 +142,11 @@ fun CheckoutScreen(navController: NavController, cartViewModel: CartViewModel, u
 
 
 @Composable
-fun DeliveryAddressSection() {
+fun DeliveryAddressSection(navController: NavController, userId: Int, selectedAddress: UserAddress?) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(bottom=0.dp)
+            .padding(bottom = 0.dp)
             .padding(8.dp),
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
@@ -165,12 +167,28 @@ fun DeliveryAddressSection() {
                     Icon(
                         painter = painterResource(id = R.drawable.editing), // Icon chỉnh sửa
                         contentDescription = "Edit Address",
-                        modifier = Modifier.size(20.dp)
+                        modifier = Modifier
+                            .size(20.dp)
+                            .clickable {
+                                navController.navigate("saved_addresses/$userId")
+                            }
                     )
                 }
                 Spacer(modifier = Modifier.height(4.dp))
-                Text(text = "216 St Paul's Rd, London N1 2LL, UK", fontSize = 14.sp)
-                Text(text = "Contact: +44-784232", fontSize = 14.sp)
+
+                if (selectedAddress != null) {
+                    Text(text = "Tên: ${selectedAddress.name}", fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                    Text(text = "Địa chỉ: ${selectedAddress.address}", fontSize = 14.sp)
+                    Text(text = "SĐT: ${selectedAddress.phoneNumber}", fontSize = 14.sp)
+                } else {
+                    Text(
+                        text = "Bạn chưa chọn địa chỉ nhận hàng",
+                        modifier = Modifier.padding(8.dp),
+                        fontSize = 14.sp,
+                        color = Color.Red,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
             }
         }
 
@@ -182,7 +200,8 @@ fun DeliveryAddressSection() {
                 .weight(0.8f)
                 .size(80.dp)
                 .background(Color.White, shape = RoundedCornerShape(8.dp))
-                .shadow(4.dp, RoundedCornerShape(2.dp)),
+                .shadow(4.dp, RoundedCornerShape(2.dp))
+                .clickable { navController.navigate("add_address/$userId") },
             contentAlignment = Alignment.Center
         ) {
             Icon(
@@ -209,7 +228,7 @@ fun CheckoutItem(cartItem: CartItem, cartViewModel: CartViewModel, userId: Int) 
                 )
                 Column(modifier = Modifier.padding(start = 8.dp).weight(1f)) {
                     Text(text = cartItem.product.TenSP, fontSize = 16.sp, fontWeight = FontWeight.Bold)
-                    Text(text = "Màu sắc: Đỏ", fontSize = 14.sp, color = Color.Gray)
+                    Text(text = "Màu sắc: Đen", fontSize = 14.sp, color = Color.Gray)
                     Text(text = "${formatCurrency(cartItem.product.GiaTien)}", fontSize = 14.sp, color = Color.Gray)
 
                     Row(verticalAlignment = Alignment.CenterVertically) {

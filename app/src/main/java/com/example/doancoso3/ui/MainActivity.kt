@@ -17,6 +17,9 @@ import com.example.doancoso3.data.CopyDbHelper
 import com.example.doancoso3.model.Product
 import com.example.doancoso3.viewmodel.CartViewModel
 import androidx.lifecycle.ViewModelProvider
+import com.example.doancoso3.data.UserAddressDb
+import com.example.doancoso3.model.UserAddress
+import com.example.doancoso3.viewmodel.AddressViewModel
 import com.example.doancoso3.viewmodel.CartViewModelFactory
 import com.example.doancoso3.viewmodel.FavoritesViewModel
 import com.example.doancoso3.viewmodel.FavoritesViewModelFactory
@@ -28,16 +31,17 @@ class MainActivity : ComponentActivity() {
     private lateinit var favoritesViewModel: FavoritesViewModel
     private val products = mutableListOf<Product>()
     private var db: CopyDbHelper? = null
-
+    private lateinit var userAddressDb: UserAddressDb
+    private val addressViewModel: AddressViewModel by viewModels()
     override fun onCreate(savedInstanceState: Bundle?) {
         userId = intent?.getIntExtra("USER_ID", 0) ?: 0
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
         dbHelper.openDatabase() // Đảm bảo cơ sở dữ liệu đã mở trước khi sử dụng
-
+        userAddressDb = dbHelper.userAddressDb()
         // Khởi tạo FavoritesViewModel
-        val factory = FavoritesViewModelFactory(dbHelper)
+        val factory = FavoritesViewModelFactory(dbHelper, userId)
         favoritesViewModel = ViewModelProvider(this, factory).get(FavoritesViewModel::class.java)
 
         setContent {
@@ -51,6 +55,7 @@ class MainActivity : ComponentActivity() {
     @Composable
     fun AppContent() {
         val navController = rememberNavController()
+
         NavHost(navController = navController, startDestination = "login") {
             composable("login") { LoginScreen(navController) }
             composable("signup") { SignUpScreen(navController) }
@@ -82,8 +87,27 @@ class MainActivity : ComponentActivity() {
             }
             composable("checkoutScreen/{userId}") { backStackEntry ->
                 val userId = backStackEntry.arguments?.getString("userId")?.toIntOrNull() ?: 0
-                CheckoutScreen(navController, cartViewModel, userId)
+                CheckoutScreen(navController, cartViewModel, userId, addressViewModel)
             }
+            composable("saved_addresses/{userId}") { backStackEntry ->
+                val userId = backStackEntry.arguments?.getString("userId")?.toIntOrNull() ?: 0
+                SavedAddressesScreen(navController, userAddressDb, userId, addressViewModel)
+            }
+            composable("editAddressScreen/{addressId}") { backStackEntry ->
+                val addressId = backStackEntry.arguments?.getString("addressId")?.toIntOrNull() ?: 0
+                val userId = backStackEntry.arguments?.getString("userId")?.toIntOrNull() ?: 0
+                EditAddressScreen(
+                    navController,
+                    userAddressDb,
+                    userId,
+                    addressId = addressId
+                )
+            }
+            composable("add_address/{userId}") {  backStackEntry ->
+                val userId = backStackEntry.arguments?.getString("userId")?.toIntOrNull() ?: 0
+                AddAddressScreen(navController, userAddressDb, userId)
+            }
+
         }
     }
 

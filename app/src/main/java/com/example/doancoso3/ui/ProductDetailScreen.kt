@@ -42,6 +42,7 @@ import androidx.compose.ui.text.font.FontWeight
 import android.graphics.BitmapFactory
 import android.widget.Toast
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.graphics.asImageBitmap
 import com.example.doancoso3.R
 import com.example.doancoso3.model.Product
@@ -53,6 +54,17 @@ fun ProductDetailScreen( userId: Int,product: Product, cartViewModel: CartViewMo
     val quantity = remember { mutableStateOf(1) } // Sử dụng mutableStateOf thay cho mutableIntStateOf
     val totalPrice by remember { derivedStateOf { product.GiaTien * quantity.value } }
     val context = LocalContext.current
+    // Trạng thái lưu màu sắc đang chọn
+    val selectedColor = remember { mutableStateOf(Color(0xFF222222)) }
+
+    // Chọn hình ảnh theo màu sắc
+    val selectedImage = when (selectedColor.value) {
+        Color(0xFF222222) -> product.HinhAnh1.takeIf { !it.isNullOrBlank() }
+        Color(0xFFFFFFFF) -> product.HinhAnh2.takeIf { !it.isNullOrBlank() }
+        Color(0xFFFF99CC) -> product.HinhAnh3.takeIf { !it.isNullOrBlank() }
+        else -> null
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -97,7 +109,7 @@ fun ProductDetailScreen( userId: Int,product: Product, cartViewModel: CartViewMo
                         .padding(start = 3.dp),
                     contentAlignment = Alignment.Center
                 ) {
-                    ColorOptions()
+                    ColorOptions(selectedColor)
                 }
             }
             Card(
@@ -107,8 +119,22 @@ fun ProductDetailScreen( userId: Int,product: Product, cartViewModel: CartViewMo
                     .fillMaxWidth(0.75f)
                     .zIndex(0f)
             ) {
-                if (product.HinhAnh1 != null) {
-                    ShowImageFromAssets(product.HinhAnh1, contentScale = ContentScale.FillBounds)
+                if (selectedImage != null) {
+                    ShowImageFromAssets(selectedImage, contentScale = ContentScale.FillBounds)
+                } else {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(Color.Gray),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "Hiện chưa có sản phẩm màu bạn chọn",
+                            color = Color.White,
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
                 }
             }
         }
@@ -195,7 +221,7 @@ fun ProductDetailScreen( userId: Int,product: Product, cartViewModel: CartViewMo
         ) {
             IconButton(
                 onClick = {
-                    favoritesViewModel.addToFavorites(product)
+                    favoritesViewModel.addToFavorites(product,userId)
                     Toast.makeText(context, "Đã thêm vào danh sách yêu thích", Toast.LENGTH_SHORT).show()
                 },
                 modifier = Modifier
@@ -227,7 +253,36 @@ fun ProductDetailScreen( userId: Int,product: Product, cartViewModel: CartViewMo
         }
     }
 }
+@Composable
+fun ColorOptions(selectedColor: MutableState<Color>) {
+    Column(
+        modifier = Modifier
+            .fillMaxHeight()
+            .padding(vertical = 8.dp),
+        verticalArrangement = Arrangement.SpaceEvenly,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        ColorOption(Color(0xFF222222), selectedColor)
+        ColorOption(Color(0xFFFFFFFF), selectedColor)
+        ColorOption(Color(0xFFFF99CC), selectedColor)
+    }
+}
 
+@Composable
+fun ColorOption(color: Color, selectedColor: MutableState<Color>) {
+    Box(
+        modifier = Modifier
+            .size(36.dp)
+            .clip(CircleShape)
+            .background(color)
+            .border(
+                width = if (selectedColor.value == color) 3.dp else 1.dp,
+                color = if (selectedColor.value == color) Color.Black else Color.Gray,
+                shape = CircleShape
+            )
+            .clickable { selectedColor.value = color }
+    )
+}
 @Composable
 fun ShowImageFromAssets(imageName: String, contentScale: ContentScale) {
     val context = LocalContext.current
@@ -247,29 +302,6 @@ fun ShowImageFromAssets(imageName: String, contentScale: ContentScale) {
 
 }
 
-@Composable
-fun ColorOptions() {
-    Column(
-        modifier = Modifier
-            .fillMaxHeight() // Lấp đầy chiều cao của `Box` cha
-            .padding(vertical = 8.dp),
-        verticalArrangement = Arrangement.SpaceEvenly, // Phân bố đều theo chiều dọc
-        horizontalAlignment = Alignment.CenterHorizontally // Căn giữa theo chiều ngang
-    ) {
-        ColorOption(Color.Red)
-        ColorOption(Color.Blue)
-        ColorOption(Color.Green)
-    }
-}
 
 
-@Composable
-fun ColorOption(color: Color) {
-    Box(
-        modifier = Modifier
-            .size(30.dp) // Đặt kích thước lớn hơn nếu cần
-            .background(color, shape = RoundedCornerShape(25.dp)) // Tăng độ tròn của góc
-            .border(2.dp, Color.Gray, RoundedCornerShape(25.dp)) // Tăng độ tròn của đường viền
-            .clickable { /* Handle color selection */ }
-    )
-}
+

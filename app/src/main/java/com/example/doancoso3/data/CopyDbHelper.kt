@@ -6,7 +6,6 @@ import java.io.File
 import java.io.FileOutputStream
 import android.database.sqlite.SQLiteOpenHelper
 import com.example.doancoso3.model.Product
-import com.example.doancoso3.viewmodel.CartViewModel
 
 class CopyDbHelper(private val context: Context): SQLiteOpenHelper(context, DB_NAME, null, DB_VERSION)  {
     companion object{
@@ -41,24 +40,25 @@ class CopyDbHelper(private val context: Context): SQLiteOpenHelper(context, DB_N
         outputStream.close()
         inputStream.close()
     }
-    fun getCartViewModel(): CartViewModel {
-        return CartViewModel(this)
-    }
     fun getUserDb(context: Context): UserDb {
         val db = openDatabase()
-        return UserDb(context, db) // ✅ Truyền đầy đủ context và db
+        return UserDb(context, db)
     }
     fun getProductDb(): ProductDb {
         val db = openDatabase()
         return ProductDb(db)
     }
+    fun userAddressDb(): UserAddressDb {
+        val db = openDatabase()
+        return UserAddressDb(db)
+    }
     fun getProductById(id: Int): Product? {
         return getProductDb().getProductById(id)
     }
-    fun addFavorite(product: Product) {
+    fun addFavorite(product: Product, userId: Int) {
         val db = writableDatabase
         val values = ContentValues().apply {
-            put("UserId", 1) // Thay bằng UserId thực tế nếu có
+            put("UserId", userId) // Thay bằng UserId thực tế nếu có
             put("TenSP", product.TenSP)
             put("GiaTien", product.GiaTien)
             put("HinhAnh", product.HinhAnh)
@@ -66,16 +66,19 @@ class CopyDbHelper(private val context: Context): SQLiteOpenHelper(context, DB_N
         db.insert(TABLE_FAVORITES, null, values)
         db.close()
     }
-    fun removeFavorite(product: Product) {
+    fun removeFavorite(product: Product, userId: Int) {
         val db = writableDatabase
-        db.delete(TABLE_FAVORITES, "TenSP = ?", arrayOf(product.TenSP))
+        db.delete(TABLE_FAVORITES,  "TenSP = ? AND UserId = ?", arrayOf(product.TenSP, userId.toString()))
         db.close()
     }
 
-    fun getFavorites(): List<Product> { // ✅ Trả về List<Product>
+    fun getFavorites(userId: Int): List<Product> { // ✅ Trả về List<Product>
         val db = readableDatabase
         val list = mutableListOf<Product>()
-        val cursor = db.rawQuery("SELECT id, TenSP, GiaTien, HinhAnh FROM $TABLE_FAVORITES", null)
+        val cursor = db.rawQuery(
+            "SELECT * FROM $TABLE_FAVORITES WHERE UserId = ?",
+            arrayOf(userId.toString())
+        )
 
         if (cursor.moveToFirst()) {
             do {
@@ -90,7 +93,7 @@ class CopyDbHelper(private val context: Context): SQLiteOpenHelper(context, DB_N
                     HinhAnh3 = null,
                     MoTa = ""
                 )
-                list.add(product)  // ✅ Chỉ thêm Product, không phải CartItem
+                list.add(product)
             } while (cursor.moveToNext())
         }
         cursor.close()

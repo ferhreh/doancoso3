@@ -34,20 +34,17 @@ import com.example.doancoso3.data.CopyDbHelper
 import com.example.doancoso3.model.Product
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.navigation.NavController
 import java.text.NumberFormat
 import java.util.Locale
-
-
 data class Filter(val name: String, val imageId: Int)
 
 val filters = listOf(
     Filter("Phổ biến", R.drawable.favorite),
-    Filter("Chuột", R.drawable.left_click),
+    Filter("Con chuột", R.drawable.left_click),
     Filter("Bàn phím", R.drawable.keyboard),
     Filter("Màn hình", R.drawable.computer_screen),
     Filter("Tai nghe", R.drawable.headphones)

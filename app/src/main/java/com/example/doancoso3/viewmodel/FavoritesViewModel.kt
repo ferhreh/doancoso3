@@ -8,7 +8,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
-class FavoritesViewModel(private val dbHelper: CopyDbHelper) : ViewModel() {
+class FavoritesViewModel(private val dbHelper: CopyDbHelper,private val userId: Int) : ViewModel() {
     private val _favorites = MutableStateFlow<List<Product>>(emptyList())
     val favorites: StateFlow<List<Product>> = _favorites
 
@@ -18,20 +18,20 @@ class FavoritesViewModel(private val dbHelper: CopyDbHelper) : ViewModel() {
 
     private fun loadFavorites() {
         viewModelScope.launch {
-            _favorites.value = dbHelper.getFavorites()
+            _favorites.value = dbHelper.getFavorites(userId)
         }
     }
 
-    fun addToFavorites(product: Product) {
+    fun addToFavorites(product: Product, userId:Int) {
         viewModelScope.launch {
-            dbHelper.addFavorite(product)
+            dbHelper.addFavorite(product, userId)
             loadFavorites() // Cập nhật danh sách yêu thích sau khi thêm
         }
     }
 
     fun removeFromFavorites(product: Product) {
         viewModelScope.launch {
-            dbHelper.removeFavorite(product)
+            dbHelper.removeFavorite(product, userId)
             loadFavorites() // Cập nhật danh sách yêu thích sau khi xóa
         }
     }
