@@ -266,9 +266,8 @@ data class BottomNavItem(val label: String, val icon: ImageVector, val route: St
                 BottomNavItem("Trang chủ", Icons.Filled.Home, "home_screen/$userId"),
                 BottomNavItem("Yêu thích", Icons.Filled.Favorite,  "favorite_screen/$userId"),
                 BottomNavItem("Thông báo", Icons.Filled.Notifications, "notification_screen"),
-                BottomNavItem("Cá nhân", Icons.Filled.Person, "profile_screen")
+                BottomNavItem("Cá nhân", Icons.Filled.Person, "profile_screen/$userId")
             )
-
             items.forEachIndexed { index, item ->
                 BottomNavigationItem(
                     icon = { Icon(imageVector = item.icon, contentDescription = item.label) },

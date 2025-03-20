@@ -27,19 +27,34 @@ class CopyDbHelper(private val context: Context): SQLiteOpenHelper(context, DB_N
             copyDatabase(dbFile)
         }
         return SQLiteDatabase.openDatabase(dbFile.path,null,SQLiteDatabase.OPEN_READWRITE)
+
     }
     private fun copyDatabase(dbFile: File) {
-        val inputStream = context.assets.open(DB_NAME)
-        val outputStream = FileOutputStream(dbFile)
-        val buffer = ByteArray(1024)
-        var length: Int
-        while (inputStream.read(buffer).also { length = it } > 0) {
-            outputStream.write(buffer, 0, length)
+        try {
+            val inputStream = context.assets.open(DB_NAME)
+            val outputStream = FileOutputStream(dbFile)
+            val buffer = ByteArray(1024)
+            var length: Int
+            var totalBytes = 0
+            while (inputStream.read(buffer).also { length = it } > 0) {
+                outputStream.write(buffer, 0, length)
+                totalBytes += length
+            }
+            outputStream.flush()
+            outputStream.close()
+            inputStream.close()
+
+            // Kiểm tra xem table Orders có tồn tại không
+            val db = SQLiteDatabase.openDatabase(dbFile.path, null, SQLiteDatabase.OPEN_READONLY)
+            val cursor = db.rawQuery("SELECT name FROM sqlite_master WHERE type='table' AND name='Orders'", null)
+            val tableExists = cursor.count > 0
+            cursor.close()
+            db.close()
+        } catch (e: Exception) {
+
         }
-        outputStream.flush()
-        outputStream.close()
-        inputStream.close()
     }
+
     fun getUserDb(context: Context): UserDb {
         val db = openDatabase()
         return UserDb(context, db)
@@ -51,6 +66,10 @@ class CopyDbHelper(private val context: Context): SQLiteOpenHelper(context, DB_N
     fun userAddressDb(): UserAddressDb {
         val db = openDatabase()
         return UserAddressDb(db)
+    }
+    fun getOrderDb(): OrderDb {
+        val db = openDatabase()
+        return OrderDb(db)
     }
     fun getProductById(id: Int): Product? {
         return getProductDb().getProductById(id)

@@ -23,6 +23,8 @@ import com.example.doancoso3.viewmodel.AddressViewModel
 import com.example.doancoso3.viewmodel.CartViewModelFactory
 import com.example.doancoso3.viewmodel.FavoritesViewModel
 import com.example.doancoso3.viewmodel.FavoritesViewModelFactory
+import com.example.doancoso3.viewmodel.OrderViewModel
+import com.example.doancoso3.viewmodel.OrderViewModelFactory
 
 class MainActivity : ComponentActivity() {
     private var userId: Int = 0 // Giá trị mặc định
@@ -33,6 +35,9 @@ class MainActivity : ComponentActivity() {
     private var db: CopyDbHelper? = null
     private lateinit var userAddressDb: UserAddressDb
     private val addressViewModel: AddressViewModel by viewModels()
+    private val orderViewModel: OrderViewModel by viewModels {
+        OrderViewModelFactory(this)
+    }
     override fun onCreate(savedInstanceState: Bundle?) {
         userId = intent?.getIntExtra("USER_ID", 0) ?: 0
         super.onCreate(savedInstanceState)
@@ -87,7 +92,7 @@ class MainActivity : ComponentActivity() {
             }
             composable("checkoutScreen/{userId}") { backStackEntry ->
                 val userId = backStackEntry.arguments?.getString("userId")?.toIntOrNull() ?: 0
-                CheckoutScreen(navController, cartViewModel, userId, addressViewModel)
+                CheckoutScreen(navController, cartViewModel, userId, addressViewModel,orderViewModel)
             }
             composable("saved_addresses/{userId}") { backStackEntry ->
                 val userId = backStackEntry.arguments?.getString("userId")?.toIntOrNull() ?: 0
@@ -106,6 +111,15 @@ class MainActivity : ComponentActivity() {
             composable("add_address/{userId}") {  backStackEntry ->
                 val userId = backStackEntry.arguments?.getString("userId")?.toIntOrNull() ?: 0
                 AddAddressScreen(navController, userAddressDb, userId)
+            }
+            composable("order_success/{userId}") { backStackEntry ->
+                val userId = backStackEntry.arguments?.getString("userId")?.toIntOrNull() ?: 0
+                OrderSuccessScreen(navController, userId)
+            }
+            composable("profile_screen/{userId}") { backStackEntry ->
+                val userId = backStackEntry.arguments?.getString("userId")?.toIntOrNull() ?: 0
+                ProfileScreen(navController, dbHelper.getUserDb(this@MainActivity), userId)
+
             }
 
         }

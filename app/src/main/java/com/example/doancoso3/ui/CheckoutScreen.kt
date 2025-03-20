@@ -1,5 +1,6 @@
 package com.example.doancoso3.ui
 
+import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -25,13 +26,16 @@ import com.example.doancoso3.data.CartItem
 import com.example.doancoso3.model.UserAddress
 import com.example.doancoso3.viewmodel.AddressViewModel
 import com.example.doancoso3.viewmodel.CartViewModel
+import com.example.doancoso3.viewmodel.OrderViewModel
 
 @Composable
-fun CheckoutScreen(navController: NavController, cartViewModel: CartViewModel, userId: Int, addressViewModel: AddressViewModel) {
+fun CheckoutScreen(navController: NavController, cartViewModel: CartViewModel, userId: Int, addressViewModel: AddressViewModel, orderViewModel: OrderViewModel) {
     val cartItems = cartViewModel.cartItems
-    val shippingFee = 5000.0 // Phí ship cố định
+    val shippingFee = 30000.0 // Phí ship cố định
     val totalPrice = cartItems.sumOf { it.product.GiaTien * it.quantity } + shippingFee
     val selectedAddress by addressViewModel.selectedAddress.collectAsState()
+    // Biến trạng thái để hiển thị hộp thoại cảnh báo
+    var showDialogNoAddress by remember { mutableStateOf(false) }
     Column(
         modifier = Modifier.fillMaxSize()
     ) {
@@ -128,7 +132,29 @@ fun CheckoutScreen(navController: NavController, cartViewModel: CartViewModel, u
 
                 // Nút đặt hàng
                 Button(
-                    onClick = { /* Xử lý thanh toán */ },
+                    onClick = {
+                        if (selectedAddress != null) {
+                            // Đặt hàng và lưu vào database
+                            val userName = selectedAddress!!.name
+                            val success = orderViewModel.placeOrder(
+                                userId = userId,
+                                userName = userName,
+                                cartItems = cartItems,
+                                address = selectedAddress!!,
+                                paymentMethod = "Thanh toán khi nhận hàng",
+                                deliveryMethod = "Nhanh (2-3 ngày)"
+                            )
+
+                            if (success) {
+                                cartViewModel.clearCart(userId)
+                                // Chuyển đến trang thanh toán thành công
+                                navController.navigate("order_success/$userId")
+                            }
+                        } else {
+                            // Hiển thị thông báo cần chọn địa chỉ
+                            showDialogNoAddress = true
+                        }
+                    },
                     modifier = Modifier.fillMaxWidth(),
                     shape = MaterialTheme.shapes.medium,
                     colors = ButtonDefaults.buttonColors(backgroundColor = Color.Black)
@@ -137,6 +163,20 @@ fun CheckoutScreen(navController: NavController, cartViewModel: CartViewModel, u
                 }
             }
         }
+    }
+    if (showDialogNoAddress) {
+        AlertDialog(
+            onDismissRequest = { showDialogNoAddress = false },
+            title = { Text("Cảnh báo") },
+            text = { Text("Vui lòng chọn địa chỉ giao hàng trước khi đặt hàng.") },
+            confirmButton = {
+                Button(
+                    onClick = { showDialogNoAddress = false }
+                ) {
+                    Text("OK")
+                }
+            }
+        )
     }
 }
 

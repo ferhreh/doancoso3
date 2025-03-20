@@ -3,6 +3,7 @@ package com.example.doancoso3.data
 import android.content.ContentValues
 import android.database.sqlite.SQLiteDatabase
 import android.content.Context
+import android.database.Cursor
 
 
 class UserDb(private val context: Context, private val db: SQLiteDatabase) {
@@ -13,7 +14,9 @@ class UserDb(private val context: Context, private val db: SQLiteDatabase) {
         private const val COLUMN_PASSWORD = "password"
         private const val COLUMN_USERNAME = "name"
     }
-
+    fun getUserDataById(userId: Int): Cursor {
+        return db.rawQuery("SELECT name, email FROM User WHERE id = ?", arrayOf(userId.toString()))
+    }
     fun getUserId(email: String, password: String): Int {
         val cursor = db.rawQuery("SELECT id FROM User WHERE Email = ? AND Password = ?", arrayOf(email, password))
 
