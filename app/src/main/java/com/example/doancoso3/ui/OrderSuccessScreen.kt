@@ -1,6 +1,5 @@
 package com.example.doancoso3.ui
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
@@ -17,7 +16,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.doancoso3.R
-
 @Composable
 fun OrderSuccessScreen(navController: NavController, userId: Int) {
     Box(
@@ -33,20 +31,13 @@ fun OrderSuccessScreen(navController: NavController, userId: Int) {
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             // Icon thành công
-            Box(
+            Icon(
+                painter = painterResource(id = R.drawable.checked),
+                contentDescription = "Success",
+                tint = Color.Green,
                 modifier = Modifier
-                    .size(120.dp)
-                    .clip(CircleShape)
-                    .background(Color.Green.copy(alpha = 0.2f)),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    painter = painterResource(id = R.drawable.editing), // Thay thế với icon thích hợp
-                    contentDescription = "Success",
-                    tint = Color.Green,
-                    modifier = Modifier.size(80.dp)
-                )
-            }
+                    .size(80.dp)
+            )
 
             Spacer(modifier = Modifier.height(24.dp))
 

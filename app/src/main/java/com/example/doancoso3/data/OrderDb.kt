@@ -1,12 +1,8 @@
 package com.example.doancoso3.data
 
 import android.content.ContentValues
-import android.database.Cursor
 import android.database.sqlite.SQLiteDatabase
 import com.example.doancoso3.model.Order
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
 
 class OrderDb(private val db: SQLiteDatabase) {
     companion object {
@@ -25,39 +21,11 @@ class OrderDb(private val db: SQLiteDatabase) {
             put("DeliveryMethod", order.deliveryMethod)
             put("OrderDate", order.orderDate)
             put("TotalAmount", order.totalAmount)
+            put("Status", order.status)
+            put("ProductName", order.productName)
+            put("ProductPrice", order.productPrice)
         }
         return db.insert(TABLE_ORDERS, null, values)
-    }
-
-    fun getOrderById(orderId: Int): Order? {
-        val cursor: Cursor = db.query(
-            TABLE_ORDERS,
-            null,
-            "id = ?",
-            arrayOf(orderId.toString()),
-            null, null, null
-        )
-
-        return if (cursor.moveToFirst()) {
-            val order = Order(
-                id = cursor.getInt(cursor.getColumnIndexOrThrow("id")),
-                userID = cursor.getInt(cursor.getColumnIndexOrThrow("UserID")),
-                userName = cursor.getString(cursor.getColumnIndexOrThrow("UserName")),
-                productId = cursor.getInt(cursor.getColumnIndexOrThrow("ProductId")),
-                address = cursor.getString(cursor.getColumnIndexOrThrow("Address")),
-                phoneNumber = cursor.getString(cursor.getColumnIndexOrThrow("PhoneNumber")),
-                soLuong = cursor.getInt(cursor.getColumnIndexOrThrow("SoLuong")),
-                paymentMethod = cursor.getString(cursor.getColumnIndexOrThrow("PaymentMethod")),
-                deliveryMethod = cursor.getString(cursor.getColumnIndexOrThrow("DeliveryMethod")),
-                orderDate = cursor.getString(cursor.getColumnIndexOrThrow("OrderDate")),
-                totalAmount = cursor.getDouble(cursor.getColumnIndexOrThrow("TotalAmount"))
-            )
-            cursor.close()
-            order
-        } else {
-            cursor.close()
-            null
-        }
     }
 
     fun getOrdersByUserId(userId: Int): List<Order> {
@@ -83,12 +51,30 @@ class OrderDb(private val db: SQLiteDatabase) {
                     paymentMethod = cursor.getString(cursor.getColumnIndexOrThrow("PaymentMethod")),
                     deliveryMethod = cursor.getString(cursor.getColumnIndexOrThrow("DeliveryMethod")),
                     orderDate = cursor.getString(cursor.getColumnIndexOrThrow("OrderDate")),
-                    totalAmount = cursor.getDouble(cursor.getColumnIndexOrThrow("TotalAmount"))
+                    totalAmount = cursor.getDouble(cursor.getColumnIndexOrThrow("TotalAmount")),
+                    status = cursor.getInt(cursor.getColumnIndexOrThrow("Status")),
+                    productName = cursor.getString(cursor.getColumnIndexOrThrow("ProductName")),
+                    productPrice = cursor.getDouble(cursor.getColumnIndexOrThrow("ProductPrice")),
                 )
                 orders.add(order)
             } while (cursor.moveToNext())
         }
         cursor.close()
         return orders
+    }
+    // Thêm hàm cập nhật trạng thái đơn hàng
+    fun updateOrderStatus(orderId: Int, status: Int): Boolean {
+        val values = ContentValues().apply {
+            put("Status", status)
+        }
+
+        val rowsAffected = db.update(
+            TABLE_ORDERS,
+            values,
+            "id = ?",
+            arrayOf(orderId.toString())
+        )
+
+        return rowsAffected > 0
     }
 }

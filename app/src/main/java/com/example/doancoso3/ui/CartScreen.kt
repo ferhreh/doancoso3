@@ -80,7 +80,7 @@ fun CartScreen(cartViewModel: CartViewModel, navController: NavController, userI
 
         // Nút thanh toán
         Button(
-            onClick = {  navController.navigate("checkoutScreen/{userId}") },
+            onClick = {  navController.navigate("checkoutScreen/$userId") },
             modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
             shape = RoundedCornerShape(8.dp),
             colors = ButtonDefaults.buttonColors(backgroundColor = Color.Black)

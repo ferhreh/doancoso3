@@ -16,23 +16,40 @@ class CartViewModel(private val dbHelper: CopyDbHelper) : ViewModel() {
     private val TABLE_CART = CopyDbHelper.TABLE_CART
     fun clearCart(userId: Int) {
         val db = dbHelper.openDatabase()
-
-        // Kiểm tra xem dữ liệu có tồn tại trước khi xóa
-        val cursorBefore = db.rawQuery("SELECT * FROM $TABLE_CART WHERE UserID = ?", arrayOf(userId.toString()))
-        cursorBefore.close()
-
         try {
-            val rowsDeleted = db.delete(TABLE_CART, "UserID = ?", arrayOf(userId.toString()))
+            db.beginTransaction() // Bắt đầu transaction
 
-            _cartItems.clear() // Xóa giỏ hàng trên UI
+            // Sử dụng rawQuery thay vì db.delete()
+            val query = "DELETE FROM $TABLE_CART WHERE UserID = ?"
+            val statement = db.compileStatement(query)
+            statement.bindString(1, userId.toString())
+            val rowsDeleted = statement.executeUpdateDelete() // Thực thi lệnh xóa
+
+            if (rowsDeleted > 0) {
+                db.setTransactionSuccessful() // Đánh dấu transaction thành công
+                _cartItems.clear() // Xóa giỏ hàng trên UI
+            }
+
         } catch (e: Exception) {
         } finally {
-            // Kiểm tra sau khi xóa
-            val cursorAfter = db.rawQuery("SELECT * FROM $TABLE_CART WHERE UserID = ?", arrayOf(userId.toString()))
-            cursorAfter.close()
-
+            db.endTransaction() // Kết thúc transaction
             db.close()
         }
+
+        loadCartItems(userId) // ⚡ Cập nhật UI sau khi xóa sản phẩm
+    }
+
+
+    fun removeFromCart(userId: Int, productName: String) {
+        val db = dbHelper.openDatabase()
+        try {
+            val rowsAffected = db.delete(TABLE_CART, "UserID = ? AND TenSP = ?", arrayOf(userId.toString(), productName))
+        } catch (e: Exception) {
+        } finally {
+            db.close()
+        }
+
+        loadCartItems(userId) // ⚡ Cập nhật UI sau khi xóa sản phẩm
     }
     fun addToCart(userId: Int, product: Product, quantity: Int) {
         val db = dbHelper.openDatabase()
@@ -66,21 +83,13 @@ class CartViewModel(private val dbHelper: CopyDbHelper) : ViewModel() {
     }
 
     fun loadCartItems(userId: Int) {
-        Log.d("CartDebug", "Starting to load cart items for user $userId")
         val db = dbHelper.openDatabase()
         val cursor = db.rawQuery("SELECT * FROM $TABLE_CART WHERE UserID = ?", arrayOf(userId.toString()))
-
-        val itemCountInDb = cursor.count
-        Log.d("CartDebug", "Found $itemCountInDb items in database for user $userId")
-
-        Log.d("CartDebug", "Current cart size before clearing: ${_cartItems.size}")
         _cartItems.clear() // Xóa danh sách cũ trước khi thêm mới
-        Log.d("CartDebug", "Cart cleared in memory, size now: ${_cartItems.size}")
 
         try {
             while (cursor.moveToNext()) {
                 val productName = cursor.getString(cursor.getColumnIndexOrThrow("TenSP"))
-                Log.d("CartDebug", "Loading cart item: $productName")
 
                 val product = Product(
                     ID = cursor.getInt(cursor.getColumnIndexOrThrow("ID")),
@@ -102,33 +111,16 @@ class CartViewModel(private val dbHelper: CopyDbHelper) : ViewModel() {
                 )
 
                 _cartItems.add(cartItem)
-                Log.d("CartDebug", "Added to cart: $productName, quantity: $quantity")
             }
 
-            Log.d("CartDebug", "Final cart size after loading: ${_cartItems.size}")
         } catch (e: Exception) {
-            Log.e("CartDebug", "Error loading cart: ${e.message}", e)
         } finally {
             cursor.close()
             db.close()
-            Log.d("CartDebug", "Database closed after loading cart")
         }
     }
-    fun removeFromCart(userId: Int, productName: String) {
-        val db = dbHelper.openDatabase()
-        try {
-            val rowsAffected = db.delete(TABLE_CART, "UserID = ? AND TenSP = ?", arrayOf(userId.toString(), productName))
-            Log.d("CartDebug", "Removed $rowsAffected items from cart")
-        } catch (e: Exception) {
-            Log.e("CartDebug", "Error removing from cart: ${e.message}")
-        } finally {
-            db.close()
-        }
 
-        loadCartItems(userId) // ⚡ Cập nhật UI sau khi xóa sản phẩm
-    }
-
-    /** 📌 Tăng số lượng sản phẩm */
+    /**  Tăng số lượng sản phẩm */
     fun increaseQuantity(userId: Int, cartItem: CartItem) {
         val db = dbHelper.openDatabase()
         val newQuantity = cartItem.quantity + 1
@@ -139,7 +131,6 @@ class CartViewModel(private val dbHelper: CopyDbHelper) : ViewModel() {
                 arrayOf(newQuantity.toString(), userId.toString(), cartItem.product.TenSP)
             )
         } catch (e: Exception) {
-            Log.e("CartDebug", "Error increasing quantity: ${e.message}")
         } finally {
             db.close()
         }
@@ -159,7 +150,6 @@ class CartViewModel(private val dbHelper: CopyDbHelper) : ViewModel() {
                     arrayOf(newQuantity.toString(), userId.toString(), cartItem.product.TenSP)
                 )
             } catch (e: Exception) {
-                Log.e("CartDebug", "Error decreasing quantity: ${e.message}")
             } finally {
                 db.close()
             }

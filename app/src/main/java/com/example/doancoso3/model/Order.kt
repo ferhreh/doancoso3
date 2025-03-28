@@ -11,5 +11,8 @@ data class Order(
     val paymentMethod: String,
     val deliveryMethod: String,
     val orderDate: String = "",
-    val totalAmount: Double = 0.0
+    val totalAmount: Double = 0.0,
+    val status: Int = 1,
+    val productName: String,  // Add this to store product name
+    val productPrice: Double, // Add this to store product price
 )

@@ -121,6 +121,14 @@ class MainActivity : ComponentActivity() {
                 ProfileScreen(navController, dbHelper.getUserDb(this@MainActivity), userId)
 
             }
+            composable("orders/{userId}") { backStackEntry ->
+                val userId = backStackEntry.arguments?.getString("userId")?.toIntOrNull() ?: 0
+                OrderScreen(
+                    navController = navController,
+                    userId = userId,
+                    orderViewModel = orderViewModel
+                )
+            }
 
         }
     }
