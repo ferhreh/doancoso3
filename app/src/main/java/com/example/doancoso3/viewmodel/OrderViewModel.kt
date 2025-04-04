@@ -60,7 +60,7 @@ class OrderViewModel(private val context: Context) : ViewModel() {
                 orderCount++
             }
             viewModelScope.launch {
-                delay(120000) // 1 minute delay
+                delay(120000) // 2 minute delay
                 _autoDeliverableOrders.value = listOf(orderCount)
             }
             orderPlaced.value = true

@@ -8,6 +8,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import com.example.doancoso3.ui.theme.Doancoso3Theme
 import androidx.navigation.compose.NavHost
@@ -18,14 +19,16 @@ import com.example.doancoso3.model.Product
 import com.example.doancoso3.viewmodel.CartViewModel
 import androidx.lifecycle.ViewModelProvider
 import com.example.doancoso3.data.UserAddressDb
-import com.example.doancoso3.model.UserAddress
 import com.example.doancoso3.viewmodel.AddressViewModel
 import com.example.doancoso3.viewmodel.CartViewModelFactory
 import com.example.doancoso3.viewmodel.FavoritesViewModel
 import com.example.doancoso3.viewmodel.FavoritesViewModelFactory
 import com.example.doancoso3.viewmodel.OrderViewModel
 import com.example.doancoso3.viewmodel.OrderViewModelFactory
-
+import com.example.doancoso3.viewmodel.SearchViewModel
+import com.example.doancoso3.viewmodel.SearchViewModelFactory
+import androidx.compose.runtime.remember
+import androidx.lifecycle.viewmodel.compose.viewModel
 class MainActivity : ComponentActivity() {
     private var userId: Int = 0 // Giá trị mặc định
     private val dbHelper: CopyDbHelper by lazy { CopyDbHelper(this) }
@@ -88,6 +91,14 @@ class MainActivity : ComponentActivity() {
             }
             composable("favorite_screen/{userId}") { backStackEntry ->
                 val userId = backStackEntry.arguments?.getString("userId")?.toIntOrNull() ?: 0
+
+                val context = LocalContext.current
+                val dbHelper = remember { CopyDbHelper(context) }
+
+                val favoritesViewModel: FavoritesViewModel = viewModel(
+                    factory = FavoritesViewModelFactory(dbHelper, userId)
+                )
+
                 FavoriteScreen(userId, favoritesViewModel, cartViewModel, navController)
             }
             composable("checkoutScreen/{userId}") { backStackEntry ->
@@ -128,6 +139,16 @@ class MainActivity : ComponentActivity() {
                     userId = userId,
                     orderViewModel = orderViewModel
                 )
+            }
+            composable("searchScreen/{userId}") { backStackEntry ->
+                val userId = backStackEntry.arguments?.getString("userId")?.toIntOrNull() ?: 0
+
+                val searchViewModel: SearchViewModel = ViewModelProvider(
+                    this@MainActivity,
+                    SearchViewModelFactory(this@MainActivity, userId)
+                ).get(SearchViewModel::class.java)
+
+                SearchScreen(navController, userId)
             }
 
         }

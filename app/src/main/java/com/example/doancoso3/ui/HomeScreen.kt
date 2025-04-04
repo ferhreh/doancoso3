@@ -105,8 +105,9 @@ fun HomeScreen(navController: NavHostController, userId: Int) {
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
+
                 // Biểu tượng tìm kiếm
-                IconButton(onClick = { /* Tìm kiếm */ }) {
+                IconButton(onClick = { navController.navigate("searchScreen/$userId")}) {
                     Image(painter = painterResource(id = R.drawable.search_icon), contentDescription = "Search", modifier = Modifier.size(34.dp).padding(start = 16.dp))
                 }
                 // Tiêu đề

@@ -1,6 +1,8 @@
 [versions]
 agp = "8.8.0"
 androidxCoreKtx = "1.15.0"
+appcompat = "1.4.2"
+constraintlayout = "2.1.4"
 coreKtxVersion = "1.12.0"
 gson = "2.10.1"
 kotlin = "2.0.0"
@@ -19,6 +21,8 @@ uiTooling = "1.7.8"
 firebaseFirestoreKtx = "25.1.2"
 
 [libraries]
+androidx-appcompat = { module = "androidx.appcompat:appcompat", version.ref = "appcompat" }
+androidx-constraintlayout = { module = "androidx.constraintlayout:constraintlayout", version.ref = "constraintlayout" }
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
 androidx-core-ktx-v1120 = { module = "androidx.core:core-ktx", version.ref = "coreKtxVersion" }
 androidx-core-ktx-v1150 = { module = "androidx.core:core-ktx", version.ref = "androidxCoreKtx" }
