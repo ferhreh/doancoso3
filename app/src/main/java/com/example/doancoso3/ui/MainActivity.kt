@@ -1,63 +1,62 @@
 package com.example.doancoso3.ui
 
 import android.os.Bundle
-import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+//noinspection UsingMaterialAndMaterial3Libraries
+import androidx.compose.material.CircularProgressIndicator
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.produceState
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.tooling.preview.Preview
-import com.example.doancoso3.ui.theme.Doancoso3Theme
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.ViewModelStoreOwner
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.example.doancoso3.data.CopyDbHelper
+import androidx.navigation.navArgument
+import com.example.doancoso3.data.ProductFirestoreRepository
+import com.example.doancoso3.data.UserAddressFirestoreRepository
+import com.example.doancoso3.data.UserFirestoreRepository
 import com.example.doancoso3.model.Product
-import com.example.doancoso3.viewmodel.CartViewModel
-import androidx.lifecycle.ViewModelProvider
-import com.example.doancoso3.data.UserAddressDb
-import com.example.doancoso3.viewmodel.AddressViewModel
-import com.example.doancoso3.viewmodel.CartViewModelFactory
-import com.example.doancoso3.viewmodel.FavoritesViewModel
-import com.example.doancoso3.viewmodel.FavoritesViewModelFactory
-import com.example.doancoso3.viewmodel.OrderViewModel
-import com.example.doancoso3.viewmodel.OrderViewModelFactory
-import com.example.doancoso3.viewmodel.SearchViewModel
-import com.example.doancoso3.viewmodel.SearchViewModelFactory
-import androidx.compose.runtime.remember
-import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.doancoso3.model.User
+import com.example.doancoso3.ui.theme.Doancoso3Theme
+import com.example.doancoso3.viewmodel.*
+
 class MainActivity : ComponentActivity() {
-    private var userId: Int = 0 // Giá trị mặc định
-    private val dbHelper: CopyDbHelper by lazy { CopyDbHelper(this) }
-    private val cartViewModel: CartViewModel by viewModels { CartViewModelFactory(dbHelper) }
-    private lateinit var favoritesViewModel: FavoritesViewModel
-    private val products = mutableListOf<Product>()
-    private var db: CopyDbHelper? = null
-    private lateinit var userAddressDb: UserAddressDb
+
+    private var userId: String = ""
+    val languageViewModel: LanguageViewModel by viewModels()
+    private val cartViewModel: CartViewModel by viewModels { CartViewModelFactory() }
     private val addressViewModel: AddressViewModel by viewModels()
-    private val orderViewModel: OrderViewModel by viewModels {
-        OrderViewModelFactory(this)
-    }
+    private val orderViewModel: OrderViewModel by viewModels { OrderViewModelFactory(this) }
+
+    private lateinit var favoritesViewModel: FavoritesViewModel
+
     override fun onCreate(savedInstanceState: Bundle?) {
-        userId = intent?.getIntExtra("USER_ID", 0) ?: 0
         super.onCreate(savedInstanceState)
+        userId = intent?.getStringExtra("USER_ID") ?: ""
         enableEdgeToEdge()
 
-        dbHelper.openDatabase() // Đảm bảo cơ sở dữ liệu đã mở trước khi sử dụng
-        userAddressDb = dbHelper.userAddressDb()
-        // Khởi tạo FavoritesViewModel
-        val factory = FavoritesViewModelFactory(dbHelper, userId)
-        favoritesViewModel = ViewModelProvider(this, factory).get(FavoritesViewModel::class.java)
+        favoritesViewModel = ViewModelProvider(
+            this,
+            FavoritesViewModelFactory(userId)
+        )[FavoritesViewModel::class.java]
 
         setContent {
             Doancoso3Theme {
                 AppContent()
             }
         }
-        db = dbHelper
     }
 
     @Composable
@@ -67,102 +66,137 @@ class MainActivity : ComponentActivity() {
         NavHost(navController = navController, startDestination = "login") {
             composable("login") { LoginScreen(navController) }
             composable("signup") { SignUpScreen(navController) }
+
             composable("home_screen/{userId}") { backStackEntry ->
-                val userId = backStackEntry.arguments?.getString("userId")?.toIntOrNull() ?: 0
-                HomeScreen(navController, userId)
+                val userId = backStackEntry.arguments?.getString("userId") ?: ""
+                HomeScreen(navController, userId, languageViewModel)
             }
+
             composable("productDetail/{productId}/{userId}") { backStackEntry ->
-                val productId = backStackEntry.arguments?.getString("productId")?.toIntOrNull()
-                val userId = backStackEntry.arguments?.getString("userId")?.toIntOrNull() ?: 0
+                val productId = backStackEntry.arguments?.getString("productId")
+                val userId = backStackEntry.arguments?.getString("userId") ?: ""
 
-                val product = productId?.let { findProductById(it.toString()) }
-
-                if (product != null) {
-                    ProductDetailScreen(userId, product, cartViewModel, favoritesViewModel, navController)
-                } else {
-                    navController.navigate("home_screen/$userId") {
-                        popUpTo("home_screen/$userId") { inclusive = true }
-                    }
+                if (productId != null) {
+                    ProductDetailScreen(userId, productId, cartViewModel, favoritesViewModel, navController,languageViewModel)
                 }
             }
-            composable("cartScreen/{userId}") { backStackEntry ->
-                val userId = backStackEntry.arguments?.getString("userId")?.toIntOrNull() ?: 0
-                CartScreen(cartViewModel, navController, userId)
-            }
-            composable("favorite_screen/{userId}") { backStackEntry ->
-                val userId = backStackEntry.arguments?.getString("userId")?.toIntOrNull() ?: 0
 
-                val context = LocalContext.current
-                val dbHelper = remember { CopyDbHelper(context) }
+            composable("cartScreen/{userId}") { backStackEntry ->
+                val userId = backStackEntry.arguments?.getString("userId") ?: ""
+                CartScreen(cartViewModel, navController, userId,languageViewModel)
+            }
+
+            composable("favorite_screen/{userId}") { backStackEntry ->
+                val userId = backStackEntry.arguments?.getString("userId") ?: ""
 
                 val favoritesViewModel: FavoritesViewModel = viewModel(
-                    factory = FavoritesViewModelFactory(dbHelper, userId)
+                    factory = FavoritesViewModelFactory(userId)
                 )
 
-                FavoriteScreen(userId, favoritesViewModel, cartViewModel, navController)
+                FavoriteScreen(userId, favoritesViewModel, cartViewModel, navController,languageViewModel)
             }
+
             composable("checkoutScreen/{userId}") { backStackEntry ->
-                val userId = backStackEntry.arguments?.getString("userId")?.toIntOrNull() ?: 0
-                CheckoutScreen(navController, cartViewModel, userId, addressViewModel,orderViewModel)
+                val userId = backStackEntry.arguments?.getString("userId") ?: ""
+                CheckoutScreen(navController, cartViewModel, userId, addressViewModel, orderViewModel,languageViewModel)
             }
-            composable("saved_addresses/{userId}") { backStackEntry ->
-                val userId = backStackEntry.arguments?.getString("userId")?.toIntOrNull() ?: 0
-                SavedAddressesScreen(navController, userAddressDb, userId, addressViewModel)
-            }
-            composable("editAddressScreen/{addressId}") { backStackEntry ->
-                val addressId = backStackEntry.arguments?.getString("addressId")?.toIntOrNull() ?: 0
-                val userId = backStackEntry.arguments?.getString("userId")?.toIntOrNull() ?: 0
-                EditAddressScreen(
-                    navController,
-                    userAddressDb,
-                    userId,
-                    addressId = addressId
-                )
-            }
-            composable("add_address/{userId}") {  backStackEntry ->
-                val userId = backStackEntry.arguments?.getString("userId")?.toIntOrNull() ?: 0
-                AddAddressScreen(navController, userAddressDb, userId)
-            }
-            composable("order_success/{userId}") { backStackEntry ->
-                val userId = backStackEntry.arguments?.getString("userId")?.toIntOrNull() ?: 0
-                OrderSuccessScreen(navController, userId)
-            }
-            composable("profile_screen/{userId}") { backStackEntry ->
-                val userId = backStackEntry.arguments?.getString("userId")?.toIntOrNull() ?: 0
-                ProfileScreen(navController, dbHelper.getUserDb(this@MainActivity), userId)
 
+            composable("saved_addresses/{userId}") { backStackEntry ->
+                val userId = backStackEntry.arguments?.getString("userId") ?: ""
+                SavedAddressesScreen(navController, userId, addressViewModel)
+            }
+
+            composable("editAddressScreen/{addressId}/{userId}") { backStackEntry ->
+                val addressId = backStackEntry.arguments?.getString("addressId") ?: ""
+                val userId = backStackEntry.arguments?.getString("userId") ?: ""
+
+                EditAddressScreen(navController, userId, addressId, addressViewModel,languageViewModel)
+            }
+            composable("add_address/{userId}") { backStackEntry ->
+                val userId = backStackEntry.arguments?.getString("userId") ?: ""
+                val addressRepo = UserAddressFirestoreRepository()
+
+                AddAddressScreen(navController, userId, addressRepo,languageViewModel)
+            }
+
+            composable("order_success/{userId}") { backStackEntry ->
+                val userId = backStackEntry.arguments?.getString("userId") ?: ""
+                OrderSuccessScreen(navController, userId,languageViewModel)
+            }
+
+            composable("profile_screen/{userId}") { backStackEntry ->
+                val userId = backStackEntry.arguments?.getString("userId") ?: ""
+                val userRepo = UserFirestoreRepository()
+
+                ProfileScreen(navController, userId, userRepo,languageViewModel)
             }
             composable("orders/{userId}") { backStackEntry ->
-                val userId = backStackEntry.arguments?.getString("userId")?.toIntOrNull() ?: 0
-                OrderScreen(
+                val userId = backStackEntry.arguments?.getString("userId") ?: ""
+                OrderScreen(navController, userId, orderViewModel,languageViewModel)
+            }
+
+            composable("searchScreen/{userId}") { backStackEntry ->
+                val userId = backStackEntry.arguments?.getString("userId") ?: ""
+
+                val context = LocalContext.current
+                val viewModelStoreOwner = remember { context as ViewModelStoreOwner }
+
+                val searchViewModel: SearchViewModel = viewModel(
+                    viewModelStoreOwner = viewModelStoreOwner,
+                    factory = SearchViewModel.SearchViewModelFactory(userId)
+                )
+
+                SearchScreen(
                     navController = navController,
                     userId = userId,
-                    orderViewModel = orderViewModel
+                    searchViewModel = searchViewModel,
+                    languageViewModel
                 )
             }
-            composable("searchScreen/{userId}") { backStackEntry ->
-                val userId = backStackEntry.arguments?.getString("userId")?.toIntOrNull() ?: 0
+            composable(
+                "feedbackScreen/{userId}/{productId}",
+                arguments = listOf(
+                    navArgument("userId") { type = NavType.StringType },
+                    navArgument("productId") { type = NavType.StringType }
+                )
+            ) { backStackEntry ->
 
-                val searchViewModel: SearchViewModel = ViewModelProvider(
-                    this@MainActivity,
-                    SearchViewModelFactory(this@MainActivity, userId)
-                ).get(SearchViewModel::class.java)
+                val userId = backStackEntry.arguments?.getString("userId") ?: ""
+                val productId = backStackEntry.arguments?.getString("productId") ?: ""
 
-                SearchScreen(navController, userId)
+                val productRepository = remember { ProductFirestoreRepository() }
+                val userRepository = remember { UserFirestoreRepository() }
+
+                val productState = produceState<Product?>(initialValue = null) {
+                    value = productRepository.getProductById(productId)
+                }
+
+                val userState = produceState<User?>(initialValue = null) {
+                    value = userRepository.getUserById(userId)
+                }
+
+                if (productState.value == null || userState.value == null) {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator()
+                    }
+                } else {
+                    FeedbackScreen(
+                        navController = navController,
+                        product = productState.value!!,
+                        userId = userId,
+                        userName = userState.value?.name ?: "",
+                        languageViewModel
+                    )
+                }
             }
-
+            composable("settings_screen/{userId}") { backStackEntry ->
+                val userId = backStackEntry.arguments?.getString("userId") ?: ""
+                SettingsScreen(navController = navController, userId = userId, languageViewModel = languageViewModel)
+            }
         }
     }
-
-    @Preview(showBackground = true)
-    @Composable
-    fun AppContentPreview() {
-        AppContent()
-    }
-
-    private fun findProductById(productId: String?): Product? {
-        val idInt = productId?.toIntOrNull() ?: return null
-        return products.find { it.ID == idInt } ?: db?.getProductById(idInt)
-    }
-
 }
+

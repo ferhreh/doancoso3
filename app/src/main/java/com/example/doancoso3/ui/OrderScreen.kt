@@ -20,6 +20,8 @@ import com.example.doancoso3.viewmodel.OrderViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import androidx.compose.material.icons.filled.Done
+import com.example.doancoso3.viewmodel.LanguageViewModel
+
 // Enum class để lưu trạng thái đơn hàng
 enum class OrderStatus(val value: Int, val label: String) {
     PROCESSING(1, "Đang xử lý"),
@@ -28,13 +30,17 @@ enum class OrderStatus(val value: Int, val label: String) {
 }
 
 @Composable
-fun OrderScreen(navController: NavController, userId: Int, orderViewModel: OrderViewModel) {
+fun OrderScreen(navController: NavController, userId: String, orderViewModel: OrderViewModel,languageViewModel: LanguageViewModel) {
     // State để lưu trạng thái đang chọn
     val (selectedStatus, setSelectedStatus) = remember { mutableStateOf(OrderStatus.PROCESSING) }
-
+    val language by languageViewModel.language.collectAsState()
     // State để lưu danh sách đơn hàng và cập nhật UI khi có thay đổi
-    var orders by remember { mutableStateOf(orderViewModel.getOrdersByUserId(userId)) }
-
+    var orders by remember { mutableStateOf<List<Order>>(emptyList()) }
+    LaunchedEffect(userId) {
+        orderViewModel.getOrdersByUserId(userId) { result ->
+            orders = result
+        }
+    }
     // CoroutineScope để xử lý các tác vụ bất đồng bộ
     val coroutineScope = rememberCoroutineScope()
 
@@ -60,7 +66,11 @@ fun OrderScreen(navController: NavController, userId: Int, orderViewModel: Order
             IconButton(onClick = { navController.popBackStack() }) {
                 Icon(imageVector = Icons.Default.ArrowBack, contentDescription = "Back")
             }
-            Text(text = "Đơn hàng", fontSize = 24.sp, fontWeight = FontWeight.Bold)
+            Text(
+                text = if (language == "en") "Orders" else "Đơn hàng",
+                fontSize = 24.sp,
+                fontWeight = FontWeight.Bold
+            )
             Spacer(modifier = Modifier.size(18.dp))
         }
 
@@ -81,21 +91,24 @@ fun OrderScreen(navController: NavController, userId: Int, orderViewModel: Order
                 StatusCard(
                     status = OrderStatus.PROCESSING,
                     isSelected = selectedStatus == OrderStatus.PROCESSING,
-                    onClick = { setSelectedStatus(OrderStatus.PROCESSING) }
+                    onClick = { setSelectedStatus(OrderStatus.PROCESSING) },
+                    language = language
                 )
 
                 // Card Đã giao
                 StatusCard(
                     status = OrderStatus.DELIVERED,
                     isSelected = selectedStatus == OrderStatus.DELIVERED,
-                    onClick = { setSelectedStatus(OrderStatus.DELIVERED) }
+                    onClick = { setSelectedStatus(OrderStatus.DELIVERED) },
+                    language = language
                 )
 
                 // Card Đã hủy
                 StatusCard(
                     status = OrderStatus.CANCELLED,
                     isSelected = selectedStatus == OrderStatus.CANCELLED,
-                    onClick = { setSelectedStatus(OrderStatus.CANCELLED) }
+                    onClick = { setSelectedStatus(OrderStatus.CANCELLED) },
+                    language = language
                 )
             }
         }
@@ -124,7 +137,7 @@ fun OrderScreen(navController: NavController, userId: Int, orderViewModel: Order
                     )
                     Spacer(modifier = Modifier.height(16.dp))
                     Text(
-                        text = "Không có đơn hàng nào",
+                        text = if (language == "en") "No Orders" else "Không có đơn hàng nào",
                         fontSize = 18.sp,
                         color = Color.Gray
                     )
@@ -147,7 +160,7 @@ fun OrderScreen(navController: NavController, userId: Int, orderViewModel: Order
                     ) {
                         // Hiển thị ngày đặt hàng
                         Text(
-                            text = "Ngày đặt: $orderDate",
+                            text = if (language == "en") "Order date: $orderDate" else "Ngày đặt: $orderDate",
                             fontSize = 16.sp,
                             fontWeight = FontWeight.Bold,
                             modifier = Modifier.padding(vertical = 8.dp)
@@ -159,13 +172,16 @@ fun OrderScreen(navController: NavController, userId: Int, orderViewModel: Order
                                 order = order,
                                 orderViewModel = orderViewModel,
                                 isOrderPlaced = isOrderPlaced,
+                                navController = navController,
                                 onStatusChanged = {
-                                    // Làm mới danh sách đơn hàng khi trạng thái thay đổi
                                     coroutineScope.launch {
-                                        delay(100) // Delay nhỏ để đảm bảo DB đã cập nhật
-                                        orders = orderViewModel.getOrdersByUserId(userId)
+                                        delay(100)
+                                        orderViewModel.getOrdersByUserId(userId) { result ->
+                                            orders = result
+                                        }
                                     }
-                                }
+                                },
+                                language = language
                             )
                             Spacer(modifier = Modifier.height(8.dp))
                         }
@@ -182,8 +198,14 @@ fun OrderScreen(navController: NavController, userId: Int, orderViewModel: Order
 fun StatusCard(
     status: OrderStatus,
     isSelected: Boolean,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    language: String
 ) {
+    val label = when (status) {
+        OrderStatus.PROCESSING -> if (language == "en") "Processing" else "Đang xử lý"
+        OrderStatus.DELIVERED -> if (language == "en") "Delivered" else "Đã giao"
+        OrderStatus.CANCELLED -> if (language == "en") "Cancelled" else "Đã hủy"
+    }
     Card(
         modifier = Modifier
             .width(100.dp)
@@ -198,7 +220,7 @@ fun StatusCard(
             contentAlignment = Alignment.Center
         ) {
             Text(
-                text = status.label,
+                text =label,
                 color = if (isSelected) Color.White else Color.Black,
                 fontSize = 14.sp,
                 fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
@@ -211,9 +233,11 @@ fun StatusCard(
 fun OrderItem(
     order: Order,
     orderViewModel: OrderViewModel,
+    navController: NavController, // <--- thêm dòng này
     isOrderPlaced: Boolean = false,
     onStatusChanged: () -> Unit = {},
-    onDelivered: () -> Unit = {}
+    onDelivered: () -> Unit = {},
+    language: String
 ) {
     val shippingFee = 30000.0
     val canMarkAsDelivered = order.status == OrderStatus.PROCESSING.value &&
@@ -245,10 +269,10 @@ fun OrderItem(
                 )
 
                 val statusText = when (order.status) {
-                    1 -> "Đang xử lý"
-                    2 -> "Đã giao"
-                    3 -> "Đã hủy"
-                    else -> "Không xác định"
+                    1 -> if (language == "en") "Processing" else "Đang xử lý"
+                    2 -> if (language == "en") "Delivered" else "Đã giao"
+                    3 -> if (language == "en") "Cancelled" else "Đã hủy"
+                    else -> if (language == "en") "Unknown" else "Không xác định"
                 }
 
                 val statusColor = when (order.status) {
@@ -273,7 +297,7 @@ fun OrderItem(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text(
-                    text = "Số lượng: ${order.soLuong}",
+                    text = if (language == "en") "Quantity: ${order.soLuong}" else "Số lượng: ${order.soLuong}",
                     fontSize = 14.sp,
                     color = Color.Gray
                 )
@@ -281,7 +305,7 @@ fun OrderItem(
                 Spacer(modifier = Modifier.width(16.dp))
 
                 Text(
-                    text = "Đơn giá: ${formatCurrency(order.productPrice)}",
+                    text = if (language == "en") "Unit price: ${formatCurrency(order.productPrice.toInt())}" else "Đơn giá: ${formatCurrency(order.productPrice.toInt())}",
                     fontSize = 14.sp,
                     color = Color.Gray
                 )
@@ -291,7 +315,7 @@ fun OrderItem(
 
             // Dòng 3: Địa chỉ giao hàng
             Text(
-                text = "Địa chỉ: ${order.address}",
+                text = if (language == "en") "Address: ${order.address}" else "Địa chỉ: ${order.address}",
                 fontSize = 14.sp,
                 color = Color.Gray,
                 maxLines = 1,
@@ -305,14 +329,14 @@ fun OrderItem(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text(
-                    text = "Thanh toán: ${order.paymentMethod}",
+                    text = if (language == "en") "Payment: ${order.paymentMethod}" else "Thanh toán: ${order.paymentMethod}",
                     fontSize = 14.sp,
                     color = Color.Gray,
                     modifier = Modifier.weight(1f)
                 )
 
                 Text(
-                    text = "Vận chuyển: ${order.deliveryMethod}",
+                    text = if (language == "en") "Delivery: ${order.deliveryMethod}" else "Vận chuyển: ${order.deliveryMethod}",
                     fontSize = 14.sp,
                     color = Color.Gray,
                     modifier = Modifier.weight(1f)
@@ -325,7 +349,7 @@ fun OrderItem(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text(
-                    text = "Phí vận chuyển:",
+                    text = if (language == "en") "Shipping Fee:" else "Phí vận chuyển:",
                     fontSize = 14.sp,
                     color = Color.Gray
                 )
@@ -343,7 +367,7 @@ fun OrderItem(
                 horizontalArrangement = Arrangement.End
             ) {
                 Text(
-                    text = "Tổng tiền: ${formatCurrency(order.totalAmount)}",
+                    text = if (language == "en") "Total Amount: ${formatCurrency(order.totalAmount)}" else "Tổng tiền: ${formatCurrency(order.totalAmount)}",
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Bold,
                     color = Color.Black
@@ -359,18 +383,22 @@ fun OrderItem(
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     // Nút Đã giao (chỉ hiện khi đã hoàn tất đặt hàng)
-                    if (canMarkAsDelivered) {
+                    if (orderViewModel.isOrderAutoDeliverable(order)) {
                         Button(
                             onClick = {
-                                // Cập nhật trạng thái sang Đã giao
-                                orderViewModel.updateOrderStatus(order.id, OrderStatus.DELIVERED.value)
-                                onStatusChanged()
-                                onDelivered()
+                                orderViewModel.updateOrderStatus(
+                                    userId = order.userID,
+                                    documentId = order.id,
+                                    status = OrderStatus.DELIVERED.value,
+                                    onResult = { success ->
+                                        if (success) {
+                                            onStatusChanged()
+                                            onDelivered()
+                                        }
+                                    }
+                                )
                             },
-                            colors = ButtonDefaults.buttonColors(
-                                backgroundColor = if (orderViewModel.isOrderAutoDeliverable(order)) Color.Green else Color.Gray
-                            ),
-                            enabled = orderViewModel.isOrderAutoDeliverable(order),
+                            colors = ButtonDefaults.buttonColors(backgroundColor = Color.Green),
                             shape = RoundedCornerShape(8.dp)
                         ) {
                             Icon(
@@ -381,7 +409,28 @@ fun OrderItem(
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
-                                text = "Đã giao",
+                                text = if (language == "en") "Delivered" else "Đã giao",
+                                color = Color.White,
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+                    } else {
+                        Button(
+                            onClick = { /* không làm gì vì chưa đủ điều kiện */ },
+                            colors = ButtonDefaults.buttonColors(backgroundColor = Color.Gray),
+                            enabled = false,
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Done,
+                                contentDescription = "Đã giao",
+                                tint = Color.White,
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = if (language == "en") "Delivered" else "Đã giao",
                                 color = Color.White,
                                 fontSize = 14.sp,
                                 fontWeight = FontWeight.Medium
@@ -393,14 +442,23 @@ fun OrderItem(
                     Button(
                         onClick = {
                             // Hủy đơn hàng và cập nhật trạng thái
-                            orderViewModel.updateOrderStatus(order.id, OrderStatus.CANCELLED.value)
+                            orderViewModel.updateOrderStatus(
+                                userId = order.userID, // hoặc biến userId nếu bạn có
+                                documentId = order.id,
+                                status = OrderStatus.CANCELLED.value,
+                                onResult = { success ->
+                                    if (success) {
+                                        onStatusChanged()
+                                    }
+                                }
+                            )
                             onStatusChanged()
                         },
                         colors = ButtonDefaults.buttonColors(backgroundColor = Color.Red),
                         shape = RoundedCornerShape(8.dp)
                     ) {
                         Text(
-                            text = "Hủy đơn",
+                            text = if (language == "en") "Cancel order" else "Hủy đơn",
                             color = Color.White,
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Medium
@@ -417,14 +475,13 @@ fun OrderItem(
                 ) {
                     Button(
                         onClick = {
-                            // TODO: Implement rating functionality
-                            // Chuyển đến màn hình đánh giá sản phẩm
+                            navController.navigate("feedbackScreen/${order.userID}/${order.productId}")
                         },
                         colors = ButtonDefaults.buttonColors(backgroundColor = Color.Blue),
                         shape = RoundedCornerShape(8.dp)
                     ) {
                         Text(
-                            text = "Đánh giá",
+                            text = if (language == "en") "Review" else "Đánh giá",
                             color = Color.White,
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Medium

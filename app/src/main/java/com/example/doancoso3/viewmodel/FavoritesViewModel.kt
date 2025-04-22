@@ -1,39 +1,49 @@
 package com.example.doancoso3.viewmodel
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.doancoso3.data.CopyDbHelper
+import com.example.doancoso3.data.FavoritesRepository
 import com.example.doancoso3.model.Product
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
-class FavoritesViewModel(private val dbHelper: CopyDbHelper,private val userId: Int) : ViewModel() {
+class FavoritesViewModel(private val userId: String) : ViewModel() {
+    private val repository = FavoritesRepository()
     private val _favorites = MutableStateFlow<List<Product>>(emptyList())
     val favorites: StateFlow<List<Product>> = _favorites
 
+
     init {
-        loadFavorites() // Gọi hàm này khi ViewModel được khởi tạo
-    }
-
-    private fun loadFavorites() {
-        viewModelScope.launch {
-            _favorites.value = dbHelper.getFavorites(userId)
+        if (userId.isNotBlank()) {
+            loadFavorites()
         }
     }
 
-    fun addToFavorites(product: Product, userId:Int) {
+    fun loadFavorites() {
         viewModelScope.launch {
-            dbHelper.addFavorite(product, userId)
-            loadFavorites() // Cập nhật danh sách yêu thích sau khi thêm
+            val favs = repository.getFavorites(userId)
+            _favorites.value = favs
         }
     }
 
-    fun removeFromFavorites(product: Product) {
+    fun addToFavorites(product: Product, userId: String) {
         viewModelScope.launch {
-            dbHelper.removeFavorite(product, userId)
-            loadFavorites() // Cập nhật danh sách yêu thích sau khi xóa
+            val productWithUser = product.copy(userId = userId)
+            repository.addFavorite(productWithUser, userId)
+            loadFavorites()
+        }
+    }
+
+    fun removeFromFavorites(userId: String, product: Product) {
+        viewModelScope.launch {
+            try {
+                repository.removeFavorite(userId, product.ID)
+                loadFavorites() // 👉 Load lại sau khi xóa
+            } catch (e: Exception) {
+                Log.e("FavoritesViewModel", "Error removing favorite", e)
+            }
         }
     }
 }
-

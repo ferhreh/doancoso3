@@ -17,28 +17,19 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.doancoso3.R
-import com.example.doancoso3.data.UserDb
+import com.example.doancoso3.data.UserFirestoreRepository
 import com.example.doancoso3.model.User
+import com.example.doancoso3.viewmodel.LanguageViewModel
 
 @Composable
-fun ProfileScreen(navController: NavController, userDb: UserDb, userId: Int) {
+fun ProfileScreen(navController: NavController, userId: String, userRepo: UserFirestoreRepository,languageViewModel: LanguageViewModel) {
+    val language by languageViewModel.language.collectAsState()
     val user = remember { mutableStateOf<User?>(null) }
-    var selectedNavItem by remember { mutableStateOf(3) } // Chọn mục Profile mặc định
+    var selectedNavItem by remember { mutableStateOf(3) }
 
-    // Lấy thông tin người dùng
     LaunchedEffect(userId) {
-        val cursor = userDb.getUserDataById(userId)
-        if (cursor.moveToFirst()) {
-            user.value = User(
-                id = userId,
-                UserName = cursor.getString(0),
-                Email = cursor.getString(1),
-                Password = ""
-            )
-        }
-        cursor.close()
+        user.value = userRepo.getUserById(userId)
     }
-
     Scaffold(
         bottomBar = {
             BottomNavigationBar(
@@ -58,7 +49,8 @@ fun ProfileScreen(navController: NavController, userDb: UserDb, userId: Int) {
                     }
                 },
                 navController = navController,
-                userId = userId
+                userId = userId,
+                language = language
             )
         }
     ) { paddingValues ->
@@ -78,7 +70,11 @@ fun ProfileScreen(navController: NavController, userDb: UserDb, userId: Int) {
                 IconButton(onClick = { navController.popBackStack() }) {
                     Icon(imageVector = Icons.Default.ArrowBack, contentDescription = "Back")
                 }
-                Text(text = "Cá nhân", fontSize = 24.sp, fontWeight = FontWeight.Bold)
+                Text(
+                    text = if (language == "en") "Profile" else "Cá nhân",
+                    fontSize = 24.sp,
+                    fontWeight = FontWeight.Bold
+                )
                 IconButton(onClick = { /* Xử lý đăng xuất */ }) {
                     Image(
                         painter = painterResource(id = R.drawable.logout),
@@ -101,12 +97,12 @@ fun ProfileScreen(navController: NavController, userDb: UserDb, userId: Int) {
                     )
                     Column(modifier = Modifier.padding(start = 16.dp)) {
                         Text(
-                            text = user.value?.UserName ?: "Đang tải...",
+                            text = user.value?.name ?: "Đang tải...",
                             fontSize = 20.sp,
                             fontWeight = FontWeight.Bold
                         )
                         Text(
-                            text = user.value?.Email ?: "",
+                            text = user.value?.email ?: "",
                             fontSize = 16.sp,
                             color = Color.Gray
                         )
@@ -115,13 +111,13 @@ fun ProfileScreen(navController: NavController, userDb: UserDb, userId: Int) {
             }
 
             // Menu tùy chọn của người dùng
-            ProfileMenu(navController, userId)
+            ProfileMenu(navController, userId, language)
         }
     }
 }
 
 @Composable
-fun ProfileMenu(navController: NavController, userId: Int) {
+fun ProfileMenu(navController: NavController, userId: String, language: String) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -148,12 +144,12 @@ fun ProfileMenu(navController: NavController, userId: Int) {
                     ) {
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                text = "Đơn hàng của tôi",
+                                text = if (language == "en") "My Orders" else "Đơn hàng của tôi",
                                 fontSize = 16.sp,
                                 fontWeight = FontWeight.Medium
                             )
                             Text(
-                                text = "Đã có 10 đơn hàng",
+                                text = if (language == "en") "You have 10 orders" else "Đã có 10 đơn hàng",
                                 fontSize = 14.sp,
                                 color = Color.Gray
                             )
@@ -187,12 +183,12 @@ fun ProfileMenu(navController: NavController, userId: Int) {
                     ) {
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                text = "Đánh giá của tôi",
+                                text = if (language == "en") "My Reviews" else "Đánh giá của tôi",
                                 fontSize = 16.sp,
                                 fontWeight = FontWeight.Medium
                             )
                             Text(
-                                text = "Đánh giá cho 5 sản phẩm",
+                                text = if (language == "en") "Reviews for 5 products" else "Đánh giá cho 5 sản phẩm",
                                 fontSize = 14.sp,
                                 color = Color.Gray
                             )
@@ -212,7 +208,7 @@ fun ProfileMenu(navController: NavController, userId: Int) {
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(vertical = 6.dp)
-                    .clickable { navController.navigate("settings/$userId") }
+                    .clickable {navController.navigate("settings_screen/$userId") }
             ) {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
@@ -227,12 +223,15 @@ fun ProfileMenu(navController: NavController, userId: Int) {
                     ) {
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                text = "Cài đặt",
+                                text = if (language == "en") "Settings" else "Cài đặt",
                                 fontSize = 16.sp,
                                 fontWeight = FontWeight.Medium
                             )
                             Text(
-                                text = "Thông báo, Mật khẩu, FAQ, Liên hệ",
+                                text = if (language == "en")
+                                    "Notifications, Password, FAQ, Contact"
+                                else
+                                    "Thông báo, Mật khẩu, FAQ, Liên hệ",
                                 fontSize = 14.sp,
                                 color = Color.Gray
                             )
@@ -250,7 +249,7 @@ fun ProfileMenu(navController: NavController, userId: Int) {
             // Thêm khoảng cách dưới cùng nếu cần
             Spacer(modifier = Modifier.height(16.dp))
             Text(
-                text = "Cảm ơn bạn đã sử dụng ứng dụng!",
+                text = if (language == "en") "Thank you for using the app!" else "Cảm ơn bạn đã sử dụng ứng dụng!",
                 fontSize = 14.sp,
                 color = Color.Gray,
                 modifier = Modifier.padding(top = 8.dp)

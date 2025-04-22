@@ -19,7 +19,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -27,19 +26,18 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import com.example.doancoso3.model.Product
+import com.example.doancoso3.viewmodel.LanguageViewModel
 import com.example.doancoso3.viewmodel.SearchViewModel
-import com.example.doancoso3.viewmodel.SearchViewModelFactory
 import kotlinx.coroutines.launch
-import java.text.NumberFormat
-import java.util.Locale
 
-@OptIn(ExperimentalMaterial3Api::class)
+
 @Composable
-fun SearchScreen(navController: NavHostController, userId: Int) {
-    val context = LocalContext.current
-    val searchViewModel: SearchViewModel = viewModel(
-        factory = SearchViewModelFactory(context,userId)
-    )
+fun SearchScreen(
+    navController: NavHostController,
+    userId: String,
+    searchViewModel: SearchViewModel,
+    languageViewModel: LanguageViewModel
+) {
 
     // State for search query
     var searchQuery by remember { mutableStateOf("") }
@@ -47,11 +45,15 @@ fun SearchScreen(navController: NavHostController, userId: Int) {
     val bestsellers by searchViewModel.bestsellers.collectAsState()
     val favorites by searchViewModel.favorites.collectAsState()
     val coroutineScope = rememberCoroutineScope()
-
+    val language by languageViewModel.language.collectAsState()
     // Load initial data
-    LaunchedEffect(key1 = true) {
-        searchViewModel.loadBestsellers()
-        searchViewModel.loadFavorites()
+    LaunchedEffect(true) {
+        launch {
+            searchViewModel.loadBestsellers()
+        }
+        launch {
+            searchViewModel.loadFavorites()
+        }
     }
 
     Column(
@@ -72,7 +74,7 @@ fun SearchScreen(navController: NavHostController, userId: Int) {
                 )
             }
             Text(
-                text = "Tìm kiếm",
+                text = if (language == "en") "Search" else "Tìm kiếm",
                 fontSize = 24.sp,
                 fontWeight = FontWeight.Bold
             )
@@ -85,7 +87,8 @@ fun SearchScreen(navController: NavHostController, userId: Int) {
                 coroutineScope.launch {
                     searchViewModel.searchProducts(searchQuery)
                 }
-            }
+            },
+            language =language
         )
 
         // Content
@@ -96,7 +99,9 @@ fun SearchScreen(navController: NavHostController, userId: Int) {
             // Search Results Section (shown only when there are results)
             if (searchResults.isNotEmpty()) {
                 item {
-                    SectionTitle(title = "Kết quả tìm kiếm: $searchQuery")
+                    SectionTitle(
+                        title = if (language == "en") "Search results: $searchQuery" else "Kết quả tìm kiếm: $searchQuery"
+                    )
                     Spacer(modifier = Modifier.height(8.dp))
                     ProductGrid(products = searchResults, navController = navController, userId = userId)
                 }
@@ -105,7 +110,9 @@ fun SearchScreen(navController: NavHostController, userId: Int) {
             // Bestsellers Section
             if (bestsellers.isNotEmpty()) {
                 item {
-                    SectionTitle(title = "Sản phẩm bán chạy")
+                    SectionTitle(
+                        title = if (language == "en") "Bestsellers" else "Sản phẩm bán chạy"
+                    )
                     Spacer(modifier = Modifier.height(8.dp))
                     LazyRow(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -121,7 +128,9 @@ fun SearchScreen(navController: NavHostController, userId: Int) {
             // Favorites Section
             if (favorites.isNotEmpty()) {
                 item {
-                    SectionTitle(title = "Sản phẩm yêu thích")
+                    SectionTitle(
+                        title = if (language == "en") "Favorite products" else "Sản phẩm yêu thích"
+                    )
                     Spacer(modifier = Modifier.height(8.dp))
                     LazyRow(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -142,7 +151,8 @@ fun SearchScreen(navController: NavHostController, userId: Int) {
 fun SearchBar(
     searchQuery: String,
     onSearchQueryChange: (String) -> Unit,
-    onSearch: () -> Unit
+    onSearch: () -> Unit,
+    language: String
 ) {
     Row(
         modifier = Modifier
@@ -156,7 +166,9 @@ fun SearchBar(
             modifier = Modifier
                 .weight(1f)
                 .padding(end = 8.dp),
-            placeholder = { Text("Tìm kiếm sản phẩm...") },
+            placeholder = {
+                Text(if (language == "en") "Search for products..." else "Tìm kiếm sản phẩm...")
+            },
             singleLine = true,
             shape = RoundedCornerShape(12.dp)
         )
@@ -189,7 +201,7 @@ fun SectionTitle(title: String) {
 }
 
 @Composable
-fun ProductGrid(products: List<Product>, navController: NavHostController, userId: Int) {
+fun ProductGrid(products: List<Product>, navController: NavHostController, userId: String) {
     LazyVerticalGrid(
         columns = GridCells.Fixed(2),
         modifier = Modifier.height(400.dp),
@@ -203,7 +215,7 @@ fun ProductGrid(products: List<Product>, navController: NavHostController, userI
 }
 
 @Composable
-fun ProductGridItem(product: Product, navController: NavHostController, userId: Int) {
+fun ProductGridItem(product: Product, navController: NavHostController, userId: String) {
     ElevatedCard(
         modifier = Modifier
             .padding(top=0.dp)
@@ -249,7 +261,7 @@ fun ProductGridItem(product: Product, navController: NavHostController, userId: 
 }
 
 @Composable
-fun ProductRowItem(product: Product, navController: NavHostController, userId: Int) {
+fun ProductRowItem(product: Product, navController: NavHostController, userId: String) {
     ElevatedCard(
         modifier = Modifier
             .padding(top=0.dp)
@@ -292,9 +304,5 @@ fun ProductRowItem(product: Product, navController: NavHostController, userId: I
             }
         }
     }
-}
-fun formatCurrency(amount: Int): String {
-    val format = NumberFormat.getInstance(Locale("vi", "VN"))
-    return "${format.format(amount)} đ"
 }
 

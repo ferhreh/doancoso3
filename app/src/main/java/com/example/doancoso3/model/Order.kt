@@ -1,10 +1,10 @@
 package com.example.doancoso3.model
 
 data class Order(
-    val id: Int = 0,
-    val userID: Int,
+    val id: String = "",
+    val userID: String = "",
     val userName: String,
-    val productId: Int,
+    val productId: String = "",
     val address: String,
     val phoneNumber: String,
     val soLuong: Int,
@@ -13,6 +13,6 @@ data class Order(
     val orderDate: String = "",
     val totalAmount: Double = 0.0,
     val status: Int = 1,
-    val productName: String,  // Add this to store product name
-    val productPrice: Double, // Add this to store product price
+    val productName: String,
+    val productPrice: Long = 0L,
 )

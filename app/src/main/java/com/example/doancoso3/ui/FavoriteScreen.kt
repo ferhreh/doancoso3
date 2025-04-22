@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.*
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -25,15 +26,17 @@ import com.example.doancoso3.R
 import com.example.doancoso3.model.Product
 import com.example.doancoso3.viewmodel.CartViewModel
 import com.example.doancoso3.viewmodel.FavoritesViewModel
+import com.example.doancoso3.viewmodel.LanguageViewModel
 
 @Composable
 fun FavoriteScreen(
-    userId: Int,
+    userId: String,
     favoritesViewModel: FavoritesViewModel,
     cartViewModel: CartViewModel,
-    navController: NavController
+    navController: NavController,
+    languageViewModel: LanguageViewModel
 ) {
-
+    val language by languageViewModel.language.collectAsState()
     val favoriteItems = favoritesViewModel.favorites.collectAsStateWithLifecycle()
     var selectedNavItem by remember { mutableStateOf(0) }
     Column(modifier = Modifier.fillMaxSize()) {
@@ -54,7 +57,7 @@ fun FavoriteScreen(
             }
 
             Text(
-                text = "Yêu thích",
+                text = if (language == "en") "Favorites" else "Yêu thích",
                 fontSize = 24.sp,
                 fontWeight = FontWeight.Bold
             )
@@ -74,10 +77,10 @@ fun FavoriteScreen(
             itemsIndexed(favoriteList) { index, product ->
                 FavoriteItemBox(
                     product = product,
-                    onRemove = { favoritesViewModel.removeFromFavorites(product) },
+                    onRemove = {   favoritesViewModel.removeFromFavorites(userId, product) },
                     onAddToCart = {
                         cartViewModel.addToCart(userId, product, 1)
-                        favoritesViewModel.removeFromFavorites(product)
+                        favoritesViewModel.removeFromFavorites(userId, product)
                     }
                 )
             }
@@ -94,14 +97,17 @@ fun FavoriteScreen(
                 onClick = {
                     favoriteItems.value.forEach { product ->
                         cartViewModel.addToCart(userId, product, 1) // Thêm userId
-                        favoritesViewModel.removeFromFavorites(product)
+                        favoritesViewModel.removeFromFavorites(userId, product)
                     }
                     navController.navigate("cartScreen/$userId")
                 },
                 modifier = Modifier.fillMaxWidth(),
                 colors = ButtonDefaults.buttonColors(backgroundColor = Color.Black)
             ) {
-                Text(text = "Thêm tất cả vào giỏ hàng ", color = Color.White)
+                Text(
+                    text = if (language == "en") "Add all to cart" else "Thêm tất cả vào giỏ hàng",
+                    color = Color.White
+                )
             }
         }
 
@@ -127,7 +133,8 @@ fun FavoriteScreen(
                 }
             },
             navController = navController,
-            userId = userId
+            userId = userId,
+            language = language
         )
     }
 }
@@ -159,7 +166,8 @@ fun FavoriteItemBox(
 
             Column(modifier = Modifier.weight(0.6f)) {
                 Text(text = product.TenSP, fontSize = 16.sp, fontWeight = FontWeight.Medium)
-                Text(text = formatCurrency(product.GiaTien), fontSize = 14.sp, color = Color.Gray)
+                Text(text = formatCurrency(product.GiaTien.toInt()), fontSize = 14.sp, color = Color.Gray)
+
             }
 
             Column(horizontalAlignment = Alignment.CenterHorizontally) {

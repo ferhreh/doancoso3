@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "180687924302",
+    "project_id": "mycomposeapp-d5338",
+    "storage_bucket": "mycomposeapp-d5338.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:180687924302:android:e9a817f5acad39d1fd271f",
+        "android_client_info": {
+          "package_name": "com.example.doancoso3"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCqjppppA5vBKPXAa69fJ866lBK7o6EKaA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

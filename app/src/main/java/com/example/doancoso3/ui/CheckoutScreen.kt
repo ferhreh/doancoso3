@@ -1,6 +1,6 @@
 package com.example.doancoso3.ui
 
-import android.util.Log
+
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -26,11 +26,13 @@ import com.example.doancoso3.data.CartItem
 import com.example.doancoso3.model.UserAddress
 import com.example.doancoso3.viewmodel.AddressViewModel
 import com.example.doancoso3.viewmodel.CartViewModel
+import com.example.doancoso3.viewmodel.LanguageViewModel
 import com.example.doancoso3.viewmodel.OrderViewModel
 
 @Composable
-fun CheckoutScreen(navController: NavController, cartViewModel: CartViewModel, userId: Int, addressViewModel: AddressViewModel, orderViewModel: OrderViewModel) {
+fun CheckoutScreen(navController: NavController, cartViewModel: CartViewModel, userId: String, addressViewModel: AddressViewModel, orderViewModel: OrderViewModel, languageViewModel: LanguageViewModel) {
     val cartItems = cartViewModel.cartItems
+    val language by languageViewModel.language.collectAsState()
     val shippingFee = 30000.0 // Phí ship cố định
     val totalPrice = cartItems.sumOf { it.product.GiaTien * it.quantity } + shippingFee
     val selectedAddress by addressViewModel.selectedAddress.collectAsState()
@@ -55,18 +57,27 @@ fun CheckoutScreen(navController: NavController, cartViewModel: CartViewModel, u
                 IconButton(onClick = { navController.popBackStack() }) {
                     Icon(imageVector = Icons.Default.ArrowBack, contentDescription = "Back")
                 }
-                Text(text = "Thanh toán", fontSize = 24.sp, fontWeight = FontWeight.Bold)
+                Text(
+                    text = if (language == "en") "Checkout" else "Thanh toán",
+                    fontSize = 24.sp,
+                    fontWeight = FontWeight.Bold
+                )
                 Spacer(modifier = Modifier.size(18.dp))
             }
 
             Spacer(modifier = Modifier.height(16.dp))
 
             // Địa chỉ nhận hàng
-            DeliveryAddressSection(navController = navController, userId = userId, selectedAddress = selectedAddress)
+            DeliveryAddressSection(
+                navController = navController,
+                userId = userId,
+                selectedAddress = selectedAddress,
+                language = language
+            )
 
             Spacer(modifier = Modifier.height(16.dp))
             Text(
-                text = "Danh sách sản phẩm của bạn",
+                text = if (language == "en") "Your Products" else "Danh sách sản phẩm của bạn",
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.padding(bottom = 8.dp)
@@ -81,13 +92,13 @@ fun CheckoutScreen(navController: NavController, cartViewModel: CartViewModel, u
             ) {
                 Column {
                     cartItems.forEach { cartItem ->
-                        CheckoutItem(cartItem, cartViewModel,userId)
+                        CheckoutItem(cartItem, cartViewModel,userId,language = language)
                     }
                 }
             }
 
             Spacer(modifier = Modifier.height(8.dp))
-            PaymentAndDeliverySection()
+            PaymentAndDeliverySection(language = language)
         }
 
         // ✅ Tổng tiền + Nút đặt hàng luôn cố định dưới màn hình
@@ -106,15 +117,24 @@ fun CheckoutScreen(navController: NavController, cartViewModel: CartViewModel, u
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Text(text = "Tổng tiền hàng:", fontSize = 16.sp)
-                    Text(text = formatCurrency(cartItems.sumOf { it.product.GiaTien * it.quantity }), fontSize = 16.sp)
+                    Text(
+                        text = if (language == "en") "Total Items:" else "Tổng tiền hàng:",
+                        fontSize = 16.sp
+                    )
+                    Text(
+                        text = formatCurrency(cartItems.sumOf { it.product.GiaTien * it.quantity }.toInt()),
+                        fontSize = 16.sp
+                    )
                 }
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Text(text = "Tổng tiền phí vận chuyển:", fontSize = 16.sp)
+                    Text(
+                        text = if (language == "en") "Shipping Fee:" else "Tổng tiền phí vận chuyển:",
+                        fontSize = 16.sp
+                    )
                     Text(text = formatCurrency(shippingFee), fontSize = 16.sp)
                 }
 
@@ -122,7 +142,11 @@ fun CheckoutScreen(navController: NavController, cartViewModel: CartViewModel, u
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Text(text = "Tổng tiền thanh toán:", fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                    Text(
+                        text = if (language == "en") "Total Payment:" else "Tổng tiền thanh toán:",
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold
+                    )
                     Text(text = formatCurrency(totalPrice), fontSize = 18.sp, fontWeight = FontWeight.Bold)
                 }
 
@@ -134,24 +158,20 @@ fun CheckoutScreen(navController: NavController, cartViewModel: CartViewModel, u
                 Button(
                     onClick = {
                         if (selectedAddress != null) {
-                            // Đặt hàng và lưu vào database
                             val userName = selectedAddress!!.name
-                            val success = orderViewModel.placeOrder(
+                            orderViewModel.placeOrder(
                                 userId = userId,
                                 userName = userName,
                                 cartItems = cartItems,
                                 address = selectedAddress!!,
                                 paymentMethod = "Thanh toán khi nhận hàng",
                                 deliveryMethod = "Nhanh (2-3 ngày)"
-                            )
-
-                            if (success) {
+                            ) {
+                                // Đây là callback khi đặt hàng thành công
                                 cartViewModel.clearCart(userId)
-                                // Chuyển đến trang thanh toán thành công
                                 navController.navigate("order_success/$userId")
                             }
                         } else {
-                            // Hiển thị thông báo cần chọn địa chỉ
                             showDialogNoAddress = true
                         }
                     },
@@ -159,7 +179,7 @@ fun CheckoutScreen(navController: NavController, cartViewModel: CartViewModel, u
                     shape = MaterialTheme.shapes.medium,
                     colors = ButtonDefaults.buttonColors(backgroundColor = Color.Black)
                 ) {
-                    Text(text = "Đặt hàng", color = Color.White, fontSize = 18.sp)
+                    Text(text = if (language == "en") "Order" else "Đặt hàng", color = Color.White, fontSize = 18.sp)
                 }
             }
         }
@@ -167,13 +187,13 @@ fun CheckoutScreen(navController: NavController, cartViewModel: CartViewModel, u
     if (showDialogNoAddress) {
         AlertDialog(
             onDismissRequest = { showDialogNoAddress = false },
-            title = { Text("Cảnh báo") },
-            text = { Text("Vui lòng chọn địa chỉ giao hàng trước khi đặt hàng.") },
+            title = { Text(if (language == "en") "Warning" else "Cảnh báo") },
+            text = { Text(if (language == "en") "Please select a delivery address before placing the order." else "Vui lòng chọn địa chỉ giao hàng trước khi đặt hàng.") },
             confirmButton = {
                 Button(
                     onClick = { showDialogNoAddress = false }
                 ) {
-                    Text("OK")
+                    Text(if (language == "en") "OK" else "OK")
                 }
             }
         )
@@ -182,7 +202,7 @@ fun CheckoutScreen(navController: NavController, cartViewModel: CartViewModel, u
 
 
 @Composable
-fun DeliveryAddressSection(navController: NavController, userId: Int, selectedAddress: UserAddress?) {
+fun DeliveryAddressSection(navController: NavController, userId: String, selectedAddress: UserAddress?,language: String) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -203,7 +223,10 @@ fun DeliveryAddressSection(navController: NavController, userId: Int, selectedAd
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Text(text = "Địa chỉ:", fontWeight = FontWeight.Bold)
+                    Text(
+                        text = if (language == "en") "Address:" else "Địa chỉ:",
+                        fontWeight = FontWeight.Bold
+                    )
                     Icon(
                         painter = painterResource(id = R.drawable.editing), // Icon chỉnh sửa
                         contentDescription = "Edit Address",
@@ -217,12 +240,24 @@ fun DeliveryAddressSection(navController: NavController, userId: Int, selectedAd
                 Spacer(modifier = Modifier.height(4.dp))
 
                 if (selectedAddress != null) {
-                    Text(text = "Tên: ${selectedAddress.name}", fontSize = 14.sp, fontWeight = FontWeight.Bold)
-                    Text(text = "Địa chỉ: ${selectedAddress.address}", fontSize = 14.sp)
-                    Text(text = "SĐT: ${selectedAddress.phoneNumber}", fontSize = 14.sp)
+                    Text(
+                        text = if (language == "en") "Name: ${selectedAddress.name}" else "Tên: ${selectedAddress.name}",
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+
+                    Text(
+                        text = if (language == "en") "Address: ${selectedAddress.address}" else "Địa chỉ: ${selectedAddress.address}",
+                        fontSize = 14.sp
+                    )
+
+                    Text(
+                        text = if (language == "en") "Phone: ${selectedAddress.phone}" else "SĐT: ${selectedAddress.phone}",
+                        fontSize = 14.sp
+                    )
                 } else {
                     Text(
-                        text = "Bạn chưa chọn địa chỉ nhận hàng",
+                        text = if (language == "en") "You haven't selected a delivery address" else "Bạn chưa chọn địa chỉ nhận hàng",
                         modifier = Modifier.padding(8.dp),
                         fontSize = 14.sp,
                         color = Color.Red,
@@ -255,7 +290,7 @@ fun DeliveryAddressSection(navController: NavController, userId: Int, selectedAd
 
 
 @Composable
-fun CheckoutItem(cartItem: CartItem, cartViewModel: CartViewModel, userId: Int) {
+fun CheckoutItem(cartItem: CartItem, cartViewModel: CartViewModel, userId: String,language:String) {
     Box(modifier = Modifier.fillMaxWidth().padding(6.dp).shadow(2.dp, RoundedCornerShape(2.dp)).background(Color.White) ) {
         Column{
             Row(
@@ -268,8 +303,16 @@ fun CheckoutItem(cartItem: CartItem, cartViewModel: CartViewModel, userId: Int) 
                 )
                 Column(modifier = Modifier.padding(start = 8.dp).weight(1f)) {
                     Text(text = cartItem.product.TenSP, fontSize = 16.sp, fontWeight = FontWeight.Bold)
-                    Text(text = "Màu sắc: Đen", fontSize = 14.sp, color = Color.Gray)
-                    Text(text = "${formatCurrency(cartItem.product.GiaTien)}", fontSize = 14.sp, color = Color.Gray)
+                    Text(
+                        text = if (language == "en") "Color: Black" else "Màu sắc: Đen",
+                        fontSize = 14.sp,
+                        color = Color.Gray
+                    )
+                    Text(
+                        text = formatCurrency(cartItem.product.GiaTien.toInt()),
+                        fontSize = 14.sp,
+                        color = Color.Gray
+                    )
 
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         IconButton(onClick = {cartViewModel.decreaseQuantity(userId, cartItem) }) {
@@ -305,12 +348,12 @@ fun CheckoutItem(cartItem: CartItem, cartViewModel: CartViewModel, userId: Int) 
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Text(
-                        text = "Tổng tiền:",
+                        text = if (language == "en") "Total:" else "Tổng tiền:",
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Bold
                     )
                     Text(
-                        text = formatCurrency(cartItem.product.GiaTien * cartItem.quantity),
+                        text = formatCurrency((cartItem.product.GiaTien * cartItem.quantity).toInt()),
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Bold
                     )
@@ -320,20 +363,20 @@ fun CheckoutItem(cartItem: CartItem, cartViewModel: CartViewModel, userId: Int) 
     }
 }
 @Composable
-fun PaymentAndDeliverySection() {
+fun PaymentAndDeliverySection(language:String) {
     Column(modifier = Modifier.fillMaxWidth()) {
         // Phương thức thanh toán
-        PaymentMethodSection()
+        PaymentMethodSection(language = language)
 
         Spacer(modifier = Modifier.height(8.dp))
 
         // Phương thức giao hàng
-        DeliveryMethodSection()
+        DeliveryMethodSection(language = language)
     }
 }
 
 @Composable
-fun PaymentMethodSection() {
+fun PaymentMethodSection(language:String) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -346,7 +389,10 @@ fun PaymentMethodSection() {
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Text(text = "Phương thức thanh toán", fontWeight = FontWeight.Bold)
+                Text(
+                    text = if (language == "en") "Payment Method" else "Phương thức thanh toán",
+                    fontWeight = FontWeight.Bold
+                )
                 Icon(
                     painter = painterResource(id = R.drawable.edit_text),
                     contentDescription = "Edit Payment Method",
@@ -369,7 +415,10 @@ fun PaymentMethodSection() {
                         modifier = Modifier.size(40.dp)
                     )
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text(text = "Thanh toán khi nhận hàng", fontSize = 16.sp)
+                    Text(
+                        text = if (language == "en") "Cash on Delivery" else "Thanh toán khi nhận hàng",
+                        fontSize = 16.sp
+                    )
                 }
             }
         }
@@ -377,7 +426,7 @@ fun PaymentMethodSection() {
 }
 
 @Composable
-fun DeliveryMethodSection() {
+fun DeliveryMethodSection(language:String) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -390,7 +439,10 @@ fun DeliveryMethodSection() {
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Text(text = "Phương thức giao hàng", fontWeight = FontWeight.Bold)
+                Text(
+                    text = if (language == "en") "Shipping Method" else "Phương thức giao hàng",
+                    fontWeight = FontWeight.Bold
+                )
                 Icon(
                     painter = painterResource(id = R.drawable.edit_text),
                     contentDescription = "Edit Delivery Method",
@@ -413,7 +465,10 @@ fun DeliveryMethodSection() {
                         modifier = Modifier.size(40.dp)
                     )
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text(text = "Nhanh (2-3 ngày)", fontSize = 16.sp)
+                    Text(
+                        text = if (language == "en") "Fast (2-3 days)" else "Nhanh (2-3 ngày)",
+                        fontSize = 16.sp
+                    )
                 }
             }
         }

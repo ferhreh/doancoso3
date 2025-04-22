@@ -8,7 +8,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.text.font.FontWeight
 import androidx.navigation.NavController
-import com.example.doancoso3.data.UserAddressDb
 import androidx.compose.foundation.layout.Column
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
@@ -19,29 +18,46 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.Color
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.LaunchedEffect
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.doancoso3.model.UserAddress
+import com.example.doancoso3.viewmodel.AddressViewModel
+import com.example.doancoso3.viewmodel.LanguageViewModel
 
 @Composable
 fun EditAddressScreen(
     navController: NavController,
-    userAddressDb: UserAddressDb,
-    userId: Int,
-    addressId: Int
+    userId: String,
+    addressId: String,
+    addressViewModel: AddressViewModel = viewModel(),
+    languageViewModel: LanguageViewModel
 ) {
-    // Lấy dữ liệu địa chỉ từ database
-    val addressList by remember { mutableStateOf(userAddressDb.getUserAddresses(userId)) }
-    val address = addressList.find { it.id == addressId }
+    val addresses by addressViewModel.addresses.collectAsState()
+    var currentAddress by remember { mutableStateOf<UserAddress?>(null) }
+    val language by languageViewModel.language.collectAsState()
+    LaunchedEffect(Unit) {
+        addressViewModel.loadAddresses(userId)
+    }
 
-    // Nếu không tìm thấy địa chỉ, quay lại màn hình trước
-    LaunchedEffect(address) {
-        if (address == null) {
+    LaunchedEffect(addresses) {
+        currentAddress = addresses.find { it.id == addressId }
+        if (currentAddress == null) {
             navController.popBackStack()
         }
     }
 
     // State cho TextField
-    var name by remember { mutableStateOf(address?.name ?: "") }
-    var addressText by remember { mutableStateOf(address?.address ?: "") }
-    var phone by remember { mutableStateOf(address?.phoneNumber ?: "") }
+    var name by remember { mutableStateOf("") }
+    var addressText by remember { mutableStateOf("") }
+    var phone by remember { mutableStateOf("") }
+
+    // Khi currentAddress thay đổi thì update UI state
+    LaunchedEffect(currentAddress) {
+        currentAddress?.let {
+            name = it.name
+            addressText = it.address
+            phone = it.phone
+        }
+    }
 
     Column(
         modifier = Modifier
@@ -50,7 +66,6 @@ fun EditAddressScreen(
         verticalArrangement = Arrangement.SpaceBetween
     ) {
         Column {
-            // Tiêu đề
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -59,13 +74,17 @@ fun EditAddressScreen(
                 IconButton(onClick = { navController.popBackStack() }) {
                     Icon(imageVector = Icons.Default.ArrowBack, contentDescription = "Back")
                 }
-                Text(text = "Sửa địa chỉ", fontSize = 24.sp, fontWeight = FontWeight.Bold)
+                Text(
+                    text = if (language == "en") "Edit Address" else "Sửa địa chỉ",
+                    fontSize = 24.sp,
+                    fontWeight = FontWeight.Bold
+                )
                 Spacer(modifier = Modifier.size(18.dp))
             }
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            Text(text = "Họ và Tên", fontWeight = FontWeight.Medium)
+            Text(text = if (language == "en") "Full Name" else "Họ và Tên", fontWeight = FontWeight.Medium)
             OutlinedTextField(
                 value = name,
                 onValueChange = { name = it },
@@ -74,7 +93,7 @@ fun EditAddressScreen(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            Text(text = "Địa Chỉ", fontWeight = FontWeight.Medium)
+            Text(text = if (language == "en") "Address" else "Địa Chỉ", fontWeight = FontWeight.Medium)
             OutlinedTextField(
                 value = addressText,
                 onValueChange = { addressText = it },
@@ -83,18 +102,21 @@ fun EditAddressScreen(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            Text(text = "Số Điện Thoại", fontWeight = FontWeight.Medium)
+            Text(text = if (language == "en") "Phone Number" else "Số Điện Thoại", fontWeight = FontWeight.Medium)
             OutlinedTextField(
                 value = phone,
                 onValueChange = { phone = it },
                 modifier = Modifier.fillMaxWidth()
             )
         }
-        // Button cập nhật
+
         Button(
             onClick = {
-                userAddressDb.updateUserAddress(addressId, name, addressText, phone)
-                navController.popBackStack()
+                currentAddress?.let {
+                    val updated = it.copy(name = name, address = addressText, phone = phone)
+                    addressViewModel.updateAddress(userId, updated)
+                    navController.popBackStack()
+                }
             },
             modifier = Modifier
                 .fillMaxWidth()
@@ -102,7 +124,7 @@ fun EditAddressScreen(
             colors = ButtonDefaults.buttonColors(backgroundColor = Color.Black)
         ) {
             Text(
-                "Cập nhật địa chỉ",
+                text = if (language == "en") "Update Address" else "Cập nhật địa chỉ",
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold,
                 color = Color.White
@@ -110,3 +132,4 @@ fun EditAddressScreen(
         }
     }
 }
+

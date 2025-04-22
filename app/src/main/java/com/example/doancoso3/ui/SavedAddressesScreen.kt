@@ -4,6 +4,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+//noinspection UsingMaterialAndMaterial3Libraries
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
@@ -14,8 +15,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
-import com.example.doancoso3.data.UserAddressDb
-import com.example.doancoso3.model.UserAddress
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import com.example.doancoso3.R
@@ -24,15 +23,14 @@ import com.example.doancoso3.viewmodel.AddressViewModel
 @Composable
 fun SavedAddressesScreen(
     navController: NavController,
-    userAddressDb: UserAddressDb,
-    userId: Int,
+    userId: String,
     addressViewModel: AddressViewModel
 ) {
-    val addresses = remember { mutableStateListOf<UserAddress>() }
-    val selectedAddress = remember { mutableStateOf<UserAddress?>(null) }
+    val addresses by addressViewModel.addresses.collectAsState()
+    val selectedAddress by addressViewModel.selectedAddress.collectAsState()
 
     LaunchedEffect(Unit) {
-        addresses.addAll(userAddressDb.getUserAddresses(userId))
+        addressViewModel.loadAddresses(userId)
     }
 
     Column(
@@ -72,11 +70,11 @@ fun SavedAddressesScreen(
                             Column(
                                 modifier = Modifier
                                     .weight(1f)
-                                    .clickable { selectedAddress.value = address }
+                                    .clickable { addressViewModel.setSelectedAddress(address) }
                             ) {
                                 Text(text = "Tên: ${address.name}", fontSize = 16.sp, fontWeight = FontWeight.Bold)
                                 Text(text = "Địa chỉ: ${address.address}", fontSize = 14.sp)
-                                Text(text = "Số điện thoại: ${address.phoneNumber}", fontSize = 14.sp)
+                                Text(text = "Số điện thoại: ${address.phone}", fontSize = 14.sp)
                             }
 
                             // Nút sửa địa chỉ
@@ -96,8 +94,8 @@ fun SavedAddressesScreen(
 
                             // Checkbox chọn địa chỉ
                             Checkbox(
-                                checked = (selectedAddress.value == address),
-                                onCheckedChange = { selectedAddress.value = address }
+                                checked = (selectedAddress == address),
+                                onCheckedChange = { addressViewModel.setSelectedAddress(address) }
                             )
                         }
 
@@ -113,12 +111,12 @@ fun SavedAddressesScreen(
         // Button ở dưới cùng styled giống như button lưu địa chỉ
         Button(
             onClick = {
-                selectedAddress.value?.let { address ->
+                selectedAddress?.let { address ->
                     addressViewModel.setSelectedAddress(address)
                     navController.navigate("checkoutScreen/$userId")
                 }
             },
-            enabled = selectedAddress.value != null,
+            enabled = selectedAddress != null,
             modifier = Modifier
                 .fillMaxWidth()
                 .height(56.dp),

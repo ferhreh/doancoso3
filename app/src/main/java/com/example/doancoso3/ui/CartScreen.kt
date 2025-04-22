@@ -26,16 +26,19 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.graphics.asImageBitmap
 import com.example.doancoso3.data.CartItem
 import com.example.doancoso3.viewmodel.CartViewModel
+import com.example.doancoso3.viewmodel.LanguageViewModel
 
 @Composable
-fun CartScreen(cartViewModel: CartViewModel, navController: NavController, userId: Int){
+fun CartScreen(cartViewModel: CartViewModel, navController: NavController, userId: String,languageViewModel: LanguageViewModel) {
+    val language by languageViewModel.language.collectAsState()
     val items = cartViewModel.cartItems
     val totalPrice = items.sumOf { it.quantity * it.product.GiaTien }
+    val isLoading by cartViewModel.isLoading
     LaunchedEffect(userId) {
         cartViewModel.loadCartItems(userId)
     }
+
     Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-        // Tiêu đề
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -47,52 +50,59 @@ fun CartScreen(cartViewModel: CartViewModel, navController: NavController, userI
                 Icon(imageVector = Icons.Default.ArrowBack, contentDescription = "Back")
             }
 
-            Text(text = "My cart", fontSize = 24.sp, fontWeight = FontWeight.Bold)
-
-            Spacer(modifier = Modifier.size(18.dp)) // Thay icon bằng khoảng trắng
-        }
-
-        // Danh sách sản phẩm
-        if (items.isEmpty()) {
             Text(
-                text = "Giỏ hàng đang trống",
-                fontSize = 18.sp,
-                modifier = Modifier.align(Alignment.CenterHorizontally)
+                text = if (language == "vi") "Giỏ hàng" else "Cart",
+                fontSize = 24.sp,
+                fontWeight = FontWeight.Bold
             )
-        } else {
-            LazyColumn(modifier = Modifier.weight(1f)) {
-                items(items) { item ->
-                    CartItemBox(item = item, cartViewModel = cartViewModel, userId = userId)
-                    Divider(color = Color.Gray, thickness = 1.dp)
+            Spacer(modifier = Modifier.size(18.dp))
+        }
+        when {
+            isLoading -> {
+                CircularProgressIndicator(modifier = Modifier.align(Alignment.CenterHorizontally))
+            }
+            items.isEmpty() -> {
+                Text(
+                    text = if (language == "vi") "Giỏ hàng đang trống" else "Your cart is empty",
+                    fontSize = 18.sp,
+                    modifier = Modifier.align(Alignment.CenterHorizontally)
+                )
+            }
+            else -> {
+                LazyColumn(modifier = Modifier.weight(1f)) {
+                    items(items) { item ->
+                        CartItemBox(item = item, cartViewModel = cartViewModel, userId = userId)
+                        Divider(color = Color.Gray, thickness = 1.dp)
+                    }
                 }
             }
         }
-
         Spacer(modifier = Modifier.height(8.dp))
 
-        // Tổng tiền
         Text(
-            text = "Tổng: ${formatCurrency(totalPrice)}",
+            text = if (language == "vi") "Tổng: ${formatCurrency(totalPrice.toInt())}" else "Total: ${formatCurrency(totalPrice.toInt())}",
             fontSize = 18.sp,
             fontWeight = FontWeight.Bold,
             modifier = Modifier.align(Alignment.End)
         )
 
-        // Nút thanh toán
         Button(
-            onClick = {  navController.navigate("checkoutScreen/$userId") },
+            onClick = { navController.navigate("checkoutScreen/$userId") },
             modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
             shape = RoundedCornerShape(8.dp),
             colors = ButtonDefaults.buttonColors(backgroundColor = Color.Black)
         ) {
-            Text(text = "Thanh toán", color = Color.White, fontSize = 18.sp)
+            Text(
+                text = if (language == "vi") "Thanh toán" else "Checkout",
+                color = Color.White,
+                fontSize = 18.sp
+            )
         }
     }
 }
 
-
 @Composable
-fun CartItemBox(item: CartItem, cartViewModel: CartViewModel, userId: Int) {
+fun CartItemBox(item: CartItem, cartViewModel: CartViewModel, userId: String) {
     Box(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
         Row(
             verticalAlignment = Alignment.Top,
@@ -107,31 +117,35 @@ fun CartItemBox(item: CartItem, cartViewModel: CartViewModel, userId: Int) {
             Spacer(modifier = Modifier.width(8.dp))
             Column(modifier = Modifier.weight(0.6f)) {
                 Text(text = item.product.TenSP, fontSize = 16.sp, fontWeight = FontWeight.Medium)
-                Text(text = " ${formatCurrency(item.product.GiaTien)}", fontSize = 14.sp, color = Color.Gray)
+                Text(text = " ${formatCurrency(item.product.GiaTien.toInt())}", fontSize = 14.sp, color = Color.Gray)
+
 
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    IconButton(onClick = {  cartViewModel.decreaseQuantity(userId, item) }) {
-                        Text(text = "-", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color.Black)
+                    IconButton(onClick = { cartViewModel.decreaseQuantity(userId, item) }) {
+                        Text(text = "-", fontSize = 18.sp, fontWeight = FontWeight.Bold)
                     }
 
                     Text(text = item.quantity.toString(), fontSize = 16.sp, fontWeight = FontWeight.Bold)
 
                     IconButton(onClick = { cartViewModel.increaseQuantity(userId, item) }) {
-                        Text(text = "+", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color.Black)
+                        Text(text = "+", fontSize = 18.sp, fontWeight = FontWeight.Bold)
                     }
                 }
             }
 
-                IconButton(onClick = {cartViewModel.removeFromCart(item.userId, item.product.TenSP)}) {
-                    Image(
-                        painter = painterResource(id = R.drawable.ic_delete),
-                        contentDescription = "Delete",
-                        modifier = Modifier.size(24.dp)
-                    )
-                }
+            IconButton(onClick = {
+                cartViewModel.removeFromCart(userId, item.product.TenSP)
+            }) {
+                Image(
+                    painter = painterResource(id = R.drawable.ic_delete),
+                    contentDescription = "Delete",
+                    modifier = Modifier.size(24.dp)
+                )
+            }
         }
     }
 }
+
 
 
 @Composable
