@@ -41,7 +41,7 @@ android {
 }
 
 dependencies {
-
+    implementation(libs.okhttp)
     implementation (libs.google.firebase.analytics.ktx)
     implementation(libs.gson)
     implementation (libs.androidx.core.ktx.v1150)

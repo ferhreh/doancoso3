@@ -67,7 +67,7 @@ class OrderViewModel : ViewModel() {
                 onSuccess() // ✅ Gọi ngay sau khi đặt hàng thành công
 
                 // Tiếp tục delay để xử lý đơn hàng tự động (sau 2 phút)
-                delay(120000)
+                delay(20000)
                 _autoDeliverableOrders.value = orderIds
             } else {
                 // TODO: xử lý khi có lỗi đặt hàng

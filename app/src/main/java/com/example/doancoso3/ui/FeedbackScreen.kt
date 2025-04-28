@@ -34,8 +34,7 @@ import com.example.doancoso3.R
 import com.example.doancoso3.data.FeedbackFirestoreRepository
 import com.example.doancoso3.model.Feedback
 import com.example.doancoso3.model.Product
-import com.example.doancoso3.util.MediaUploadHelper
-import com.example.doancoso3.util.MediaUploadHelper.copyUriToTempFile
+import com.example.doancoso3.util.ImgurUploadHelper
 import com.example.doancoso3.viewmodel.LanguageViewModel
 import kotlinx.coroutines.launch
 
@@ -68,6 +67,8 @@ fun FeedbackScreen(
             selectedVideo = it
         }
     }
+    val uploadedImageUrls = remember { mutableStateListOf<String>() }
+    var uploadedVideoUrl by remember { mutableStateOf<String?>(null) }
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -251,8 +252,7 @@ fun FeedbackScreen(
                     }
                 }
             }
-
-            // Display selected media previews
+            // Hiển thị hình ảnh
             if (selectedImages.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(16.dp))
                 Text(
@@ -260,8 +260,23 @@ fun FeedbackScreen(
                     fontSize = 14.sp,
                     color = Color.Gray
                 )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Column {
+                    selectedImages.forEachIndexed { index, uri ->
+                        val url = uploadedImageUrls.getOrNull(index)
+                        Text(
+                            text = url ?: uri.toString(),
+                            fontSize = 12.sp,
+                            color = if (url != null) Color.Blue else Color.DarkGray,
+                            maxLines = 1
+                        )
+                    }
+                }
             }
 
+            // Hiển thị video
             if (selectedVideo != null) {
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
@@ -269,7 +284,17 @@ fun FeedbackScreen(
                     fontSize = 14.sp,
                     color = Color.Gray
                 )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Text(
+                    text = uploadedVideoUrl ?: selectedVideo.toString(),
+                    fontSize = 12.sp,
+                    color = if (uploadedVideoUrl != null) Color.Blue else Color.DarkGray,
+                    maxLines = 2
+                )
             }
+
         }
 
         Spacer(modifier = Modifier.height(24.dp))
@@ -315,34 +340,27 @@ fun FeedbackScreen(
             onClick = {
                 if (feedbackText.split("\\s+".toRegex()).filter { it.isNotEmpty() }.size >= 10) {
                     coroutineScope.launch {
-                        // 1. Upload media
-                        val uploadedImageUrls = mutableListOf<String>()
+                        uploadedImageUrls.clear()
+
+                        // Upload ảnh
                         for (uri in selectedImages) {
-                            Log.d("UPLOAD_IMAGE", "Preparing to upload image URI: $uri")
-                            val bytes = uri.toByteArray(context)
-                            if (bytes != null) {
-                                val url = MediaUploadHelper.uploadImageFromBytes(bytes, userId)
-                                Log.d("UPLOAD_IMAGE", "Upload result: $url")
-                                if (url != null) {
-                                    uploadedImageUrls.add(url)
-                                } else {
-                                    Log.e("UPLOAD_IMAGE", "Upload failed for uri: $uri")
-                                }
+                            Log.d("UPLOAD_IMAGE", "Preparing image: $uri")
+                            val url = ImgurUploadHelper.uploadImage(uri, context)
+                            if (url != null) {
+                                uploadedImageUrls.add(url)
+                                Log.d("UPLOAD_IMAGE", "Success: $url")
                             } else {
-                                Log.e("UPLOAD_IMAGE", "Failed to read bytes from uri: $uri")
+                                Log.e("UPLOAD_IMAGE", "Failed: $uri")
                             }
                         }
-                        val uploadedVideoUrl = selectedVideo?.let {
-                            val safeUri = copyUriToTempFile(context, it)
-                            if (safeUri != null) {
-                                MediaUploadHelper.uploadVideoFromUri(safeUri, userId, context)
-                            } else {
-                                Log.e("UPLOAD_VIDEO", "Failed to copy video to temp file")
-                                ""
-                            }
-                        } ?: ""
 
-                        // 2. Tạo feedback
+                        // Upload video nếu có
+                        uploadedVideoUrl = selectedVideo?.let { videoUri ->
+                            Log.d("UPLOAD_VIDEO", "Preparing video: $videoUri")
+                            ImgurUploadHelper.uploadVideo(videoUri, context)
+                        }
+
+                        // Tạo đối tượng feedback
                         val feedback = Feedback(
                             userId = userId,
                             userName = userName,
@@ -350,22 +368,21 @@ fun FeedbackScreen(
                             productName = product.TenSP,
                             rating = rating,
                             comment = feedbackText,
-                            imageUrls = uploadedImageUrls,
-                            videoUrl = uploadedVideoUrl,
+                            imageUrls = uploadedImageUrls.toList(),
+                            videoUrl = uploadedVideoUrl ?: "",
                             timestamp = System.currentTimeMillis()
                         )
 
-                        // 3. Lưu Firestore
+                        // Gửi lên Firestore
                         val success = feedbackRepository.addFeedback(feedback)
                         if (success) {
-                            // Show success (ví dụ: Toast)
                             navController.popBackStack()
                         } else {
-                            // Show error message
+                            Log.e("UPLOAD_FEEDBACK", "Failed to upload feedback to Firestore")
                         }
                     }
                 } else {
-                    // Show error: tối thiểu 10 từ
+                    Log.w("FEEDBACK_VALIDATE", "Feedback phải có ít nhất 10 từ")
                 }
             },
             modifier = Modifier
