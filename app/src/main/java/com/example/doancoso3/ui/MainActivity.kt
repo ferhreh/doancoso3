@@ -24,9 +24,11 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.example.doancoso3.data.OrderFirestoreRepository
 import com.example.doancoso3.data.ProductFirestoreRepository
 import com.example.doancoso3.data.UserAddressFirestoreRepository
 import com.example.doancoso3.data.UserFirestoreRepository
+import com.example.doancoso3.model.Order
 import com.example.doancoso3.model.Product
 import com.example.doancoso3.model.User
 import com.example.doancoso3.ui.theme.Doancoso3Theme
@@ -128,7 +130,6 @@ class MainActivity : ComponentActivity() {
             composable("profile_screen/{userId}") { backStackEntry ->
                 val userId = backStackEntry.arguments?.getString("userId") ?: ""
                 val userRepo = UserFirestoreRepository()
-
                 ProfileScreen(navController, userId, userRepo,languageViewModel)
             }
             composable("orders/{userId}") { backStackEntry ->
@@ -155,19 +156,20 @@ class MainActivity : ComponentActivity() {
                 )
             }
             composable(
-                "feedbackScreen/{userId}/{productId}",
+                "feedbackScreen/{userId}/{productId}/{orderId}",
                 arguments = listOf(
                     navArgument("userId") { type = NavType.StringType },
-                    navArgument("productId") { type = NavType.StringType }
+                    navArgument("productId") { type = NavType.StringType },
+                    navArgument("orderId") { type = NavType.StringType }
                 )
             ) { backStackEntry ->
 
                 val userId = backStackEntry.arguments?.getString("userId") ?: ""
                 val productId = backStackEntry.arguments?.getString("productId") ?: ""
-
+                val orderId = backStackEntry.arguments?.getString("orderId") ?: ""
                 val productRepository = remember { ProductFirestoreRepository() }
                 val userRepository = remember { UserFirestoreRepository() }
-
+                val orderRepository = remember { OrderFirestoreRepository() }
                 val productState = produceState<Product?>(initialValue = null) {
                     value = productRepository.getProductById(productId)
                 }
@@ -176,7 +178,10 @@ class MainActivity : ComponentActivity() {
                     value = userRepository.getUserById(userId)
                 }
 
-                if (productState.value == null || userState.value == null) {
+                val orderState = produceState<Order?>(initialValue = null) {
+                    value = orderRepository.getOrderById(userId, orderId)
+                }
+                if (productState.value == null || userState.value == null || orderState.value == null) {
                     Box(
                         modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center
@@ -189,13 +194,31 @@ class MainActivity : ComponentActivity() {
                         product = productState.value!!,
                         userId = userId,
                         userName = userState.value?.name ?: "",
-                        languageViewModel
+                        orderId = orderId,
+                        languageViewModel,
+                        order = orderState.value!!
                     )
                 }
             }
             composable("settings_screen/{userId}") { backStackEntry ->
                 val userId = backStackEntry.arguments?.getString("userId") ?: ""
                 SettingsScreen(navController = navController, userId = userId, languageViewModel = languageViewModel)
+            }
+            composable("my_feedback_screen/{userId}") { backStackEntry ->
+                val userId = backStackEntry.arguments?.getString("userId") ?: ""
+                MyFeedbackScreen(
+                    navController = navController,
+                    userId = userId,
+                    languageViewModel = languageViewModel
+                )
+            }
+            composable("feedback_product_screen/{productId}") { backStackEntry ->
+                val productId = backStackEntry.arguments?.getString("productId") ?: ""
+                FeedbackProductScreen(
+                    productId = productId,
+                    navController = navController,
+                    languageViewModel = languageViewModel
+                )
             }
         }
     }

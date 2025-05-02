@@ -15,4 +15,5 @@ data class Order(
     val status: Int = 1,
     val productName: String,
     val productPrice: Long = 0L,
+    var isReviewed: Boolean = false
 )

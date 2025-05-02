@@ -76,9 +76,9 @@ fun SettingsScreen(
     var showDeleteAccountDialog by remember { mutableStateOf(false) }
 
     // Update password function
-    fun updatePassword() {
+    fun updatePassword(language: String) {
         if (currentPassword.isEmpty() || newPassword.isEmpty()) {
-            passwordError = "Vui lòng nhập đầy đủ thông tin"
+            passwordError = if (language == "en") "Please fill in all fields" else "Vui lòng nhập đầy đủ thông tin"
             return
         }
 
@@ -95,7 +95,7 @@ fun SettingsScreen(
                     newPassword = ""
                 }
             } else {
-                passwordError = "Mật khẩu hiện tại không chính xác"
+                passwordError = if (language == "en") "Current password is incorrect" else "Mật khẩu hiện tại không chính xác"
             }
         }
     }
@@ -119,7 +119,7 @@ fun SettingsScreen(
                 )
             }
             Text(
-                text = "Cài đặt",
+                text = if (language == "en") "Settings" else "Cài đặt",
                 fontSize = 24.sp,
                 fontWeight = FontWeight.Bold
             )
@@ -138,7 +138,7 @@ fun SettingsScreen(
         } else {
             // Personal Information Section
             Text(
-                text = "Thông tin cá nhân",
+                text = if (language == "en") "Personal Information" else "Thông tin cá nhân",
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Medium,
                 modifier = Modifier.padding(vertical = 8.dp)
@@ -155,7 +155,7 @@ fun SettingsScreen(
                 Column(modifier = Modifier.padding(16.dp)) {
                     // Name
                     Text(
-                        text = "Họ và tên",
+                        text = if (language == "en") "Full Name" else "Họ và tên",
                         fontSize = 14.sp,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -197,7 +197,7 @@ fun SettingsScreen(
 
             // Password Section
             Text(
-                text = "Mật khẩu",
+                text = if (language == "en") "Password" else "Mật khẩu",
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Medium,
                 modifier = Modifier.padding(vertical = 8.dp)
@@ -213,7 +213,7 @@ fun SettingsScreen(
                 Column(modifier = Modifier.padding(16.dp)) {
                     // Current Password
                     Text(
-                        text = "Mật khẩu hiện tại",
+                        text = if (language == "en") "Current Password" else "Mật khẩu hiện tại",
                         fontSize = 14.sp,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -235,7 +235,7 @@ fun SettingsScreen(
 
                     // New Password
                     Text(
-                        text = "Mật khẩu mới",
+                        text = if (language == "en") "New Password" else "Mật khẩu mới",
                         fontSize = 14.sp,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -263,7 +263,7 @@ fun SettingsScreen(
 
                     if (passwordSuccess) {
                         Text(
-                            text = "Mật khẩu đã được cập nhật thành công!",
+                            text = if (language == "en") "Password updated successfully!" else "Mật khẩu đã được cập nhật thành công!",
                             color = Color(0xFF4CAF50),
                             modifier = Modifier.padding(top = 4.dp)
                         )
@@ -272,18 +272,18 @@ fun SettingsScreen(
                     Spacer(modifier = Modifier.height(8.dp))
 
                     Button(
-                        onClick = { updatePassword() },
+                        onClick = { updatePassword(language) },
                         colors = ButtonDefaults.buttonColors(containerColor = Color.White),
                         modifier = Modifier.align(Alignment.End)
                     ) {
-                        Text("Cập nhật mật khẩu")
+                        Text(text = if (language == "en") "Update Password" else "Cập nhật mật khẩu")
                     }
                 }
             }
 
             // Language Selection
             Text(
-                text = "Ngôn ngữ",
+                text = if (language == "en") "Language" else "Ngôn ngữ",
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Medium,
                 modifier = Modifier.padding(vertical = 8.dp)
@@ -303,7 +303,7 @@ fun SettingsScreen(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(text = "Ngôn ngữ ứng dụng", fontSize = 16.sp)
+                    Text(text = if (language == "en") "Application language" else "Ngôn ngữ ứng dụng", fontSize = 16.sp)
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(text = if (language == "vi") "Tiếng Việt" else "English", color = MaterialTheme.colorScheme.primary)
                         Icon(imageVector = Icons.Default.KeyboardArrowRight, contentDescription = "Select", tint = MaterialTheme.colorScheme.primary)
@@ -314,7 +314,7 @@ fun SettingsScreen(
             if (showLanguageDialog) {
                 AlertDialog(
                     onDismissRequest = { showLanguageDialog = false },
-                    title = { Text("Chọn ngôn ngữ") },
+                    title = { Text(text = if (language == "vi") "Chọn ngôn ngữ" else "Select language") },
                     text = {
                         Column {
                             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -348,7 +348,7 @@ fun SettingsScreen(
                     },
                     confirmButton = {
                         TextButton(onClick = { showLanguageDialog = false }) {
-                            Text("Hủy")
+                            Text(text = if (language == "vi") "Hủy" else "Cancel")
                         }
                     }
                 )
@@ -357,7 +357,7 @@ fun SettingsScreen(
 
             // Notifications Section
             Text(
-                text = "Thông báo",
+                text = if (language == "vi") "Thông báo" else "Notification",
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Medium,
                 modifier = Modifier.padding(vertical = 8.dp)
@@ -380,7 +380,7 @@ fun SettingsScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "Nhận thông báo",
+                        text = if (language == "vi") "Nhận thông báo" else "Receive notifications",
                         fontSize = 16.sp
                     )
 
@@ -408,7 +408,7 @@ fun SettingsScreen(
                 )
             ) {
                 Text(
-                    text = "Xóa tài khoản",
+                    text = if (language == "vi") "Xóa tài khoản" else "Delete account",
                     modifier = Modifier.padding(vertical = 8.dp)
                 )
             }
@@ -424,7 +424,7 @@ fun SettingsScreen(
                 )
             ) {
                 Text(
-                    text = "Đăng xuất",
+                    text = if (language == "vi") "Đăng xuất" else "Log out",
                     modifier = Modifier.padding(vertical = 8.dp)
                 )
             }
@@ -437,8 +437,12 @@ fun SettingsScreen(
     if (showLogoutDialog) {
         AlertDialog(
             onDismissRequest = { showLogoutDialog = false },
-            title = { Text("Đăng xuất") },
-            text = { Text("Bạn có chắc chắn muốn đăng xuất không?") },
+            title = {
+                Text(text = if (language == "vi") "Đăng xuất" else "Log out")
+            },
+            text = {
+                Text(text = if (language == "vi") "Bạn có chắc chắn muốn đăng xuất không?" else "Are you sure you want to log out?")
+            },
             confirmButton = {
                 Button(
                     onClick = {
@@ -448,25 +452,31 @@ fun SettingsScreen(
                         }
                     }
                 ) {
-                    Text("Đăng xuất")
+                    Text(text = if (language == "vi") "Đăng xuất" else "Log out")
                 }
             },
             dismissButton = {
                 OutlinedButton(onClick = { showLogoutDialog = false }) {
-                    Text("Hủy")
+                    Text(text = if (language == "vi") "Hủy" else "Cancel")
                 }
             }
         )
     }
 
+
     // Delete Account Dialog
     if (showDeleteAccountDialog) {
         AlertDialog(
             onDismissRequest = { showDeleteAccountDialog = false },
-            title = { Text("Xóa tài khoản") },
+            title = {
+                Text(text = if (language == "vi") "Xóa tài khoản" else "Delete Account")
+            },
             text = {
                 Text(
-                    "Bạn có chắc chắn muốn xóa tài khoản? Hành động này không thể hoàn tác và tất cả dữ liệu của bạn sẽ bị xóa vĩnh viễn."
+                    text = if (language == "vi")
+                        "Bạn có chắc chắn muốn xóa tài khoản? Hành động này không thể hoàn tác và tất cả dữ liệu của bạn sẽ bị xóa vĩnh viễn."
+                    else
+                        "Are you sure you want to delete your account? This action cannot be undone and all your data will be permanently deleted."
                 )
             },
             confirmButton = {
@@ -483,12 +493,12 @@ fun SettingsScreen(
                         containerColor = MaterialTheme.colorScheme.error
                     )
                 ) {
-                    Text("Xóa tài khoản")
+                    Text(text = if (language == "vi") "Xóa tài khoản" else "Delete Account")
                 }
             },
             dismissButton = {
                 OutlinedButton(onClick = { showDeleteAccountDialog = false }) {
-                    Text("Hủy")
+                    Text(text = if (language == "vi") "Hủy" else "Cancel")
                 }
             }
         )

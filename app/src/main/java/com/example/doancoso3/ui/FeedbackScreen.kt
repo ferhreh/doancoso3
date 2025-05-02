@@ -3,6 +3,7 @@ package com.example.doancoso3.ui
 import android.graphics.BitmapFactory
 import android.net.Uri
 import android.util.Log
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
@@ -32,7 +33,9 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.doancoso3.R
 import com.example.doancoso3.data.FeedbackFirestoreRepository
+import com.example.doancoso3.data.OrderFirestoreRepository
 import com.example.doancoso3.model.Feedback
+import com.example.doancoso3.model.Order
 import com.example.doancoso3.model.Product
 import com.example.doancoso3.util.ImgurUploadHelper
 import com.example.doancoso3.viewmodel.LanguageViewModel
@@ -44,7 +47,9 @@ fun FeedbackScreen(
     product: Product,
     userId: String,
     userName: String,
-    languageViewModel: LanguageViewModel
+    orderId: String,
+    languageViewModel: LanguageViewModel,
+    order: Order
 ) {
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
@@ -69,6 +74,7 @@ fun FeedbackScreen(
     }
     val uploadedImageUrls = remember { mutableStateListOf<String>() }
     var uploadedVideoUrl by remember { mutableStateOf<String?>(null) }
+    val orderRepository = OrderFirestoreRepository()
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -260,20 +266,6 @@ fun FeedbackScreen(
                     fontSize = 14.sp,
                     color = Color.Gray
                 )
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                Column {
-                    selectedImages.forEachIndexed { index, uri ->
-                        val url = uploadedImageUrls.getOrNull(index)
-                        Text(
-                            text = url ?: uri.toString(),
-                            fontSize = 12.sp,
-                            color = if (url != null) Color.Blue else Color.DarkGray,
-                            maxLines = 1
-                        )
-                    }
-                }
             }
 
             // Hiển thị video
@@ -283,15 +275,6 @@ fun FeedbackScreen(
                     text = if (language == "en") "1 video selected" else "1 video đã chọn",
                     fontSize = 14.sp,
                     color = Color.Gray
-                )
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                Text(
-                    text = uploadedVideoUrl ?: selectedVideo.toString(),
-                    fontSize = 12.sp,
-                    color = if (uploadedVideoUrl != null) Color.Blue else Color.DarkGray,
-                    maxLines = 2
                 )
             }
 
@@ -376,6 +359,12 @@ fun FeedbackScreen(
                         // Gửi lên Firestore
                         val success = feedbackRepository.addFeedback(feedback)
                         if (success) {
+                            orderRepository.markOrderAsReviewed(userId, orderId)
+                            Toast.makeText(
+                                context,
+                                if (language == "en") "Feedback submitted successfully!" else "Đã gửi đánh giá thành công!",
+                                Toast.LENGTH_SHORT
+                            ).show()
                             navController.popBackStack()
                         } else {
                             Log.e("UPLOAD_FEEDBACK", "Failed to upload feedback to Firestore")
@@ -418,16 +407,5 @@ fun ShowImageFromAssets(imageName: String) {
                 .clip(RoundedCornerShape(8.dp)),
             contentScale = ContentScale.Crop
         )
-    }
-}
-
-fun Uri.toByteArray(context: android.content.Context): ByteArray? {
-    return try {
-        context.contentResolver.openInputStream(this)?.use { input ->
-            input.readBytes()
-        }
-    } catch (e: Exception) {
-        e.printStackTrace()
-        null
     }
 }

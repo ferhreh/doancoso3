@@ -51,7 +51,6 @@ fun OrderScreen(navController: NavController, userId: String, orderViewModel: Or
     val filteredOrders = remember(selectedStatus, orders) {
         orders.filter { it.status == selectedStatus.value }
     }
-
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -171,7 +170,6 @@ fun OrderScreen(navController: NavController, userId: String, orderViewModel: Or
                             OrderItem(
                                 order = order,
                                 orderViewModel = orderViewModel,
-                                isOrderPlaced = isOrderPlaced,
                                 navController = navController,
                                 onStatusChanged = {
                                     coroutineScope.launch {
@@ -234,14 +232,13 @@ fun OrderItem(
     order: Order,
     orderViewModel: OrderViewModel,
     navController: NavController, // <--- thêm dòng này
-    isOrderPlaced: Boolean = false,
     onStatusChanged: () -> Unit = {},
     onDelivered: () -> Unit = {},
     language: String
 ) {
+    //bien kiem tra danh gia
+    var isReviewed: Boolean = false
     val shippingFee = 30000.0
-    val canMarkAsDelivered = order.status == OrderStatus.PROCESSING.value &&
-            (isOrderPlaced || orderViewModel.isOrderAutoDeliverable(order))
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -466,26 +463,42 @@ fun OrderItem(
                     }
                 }
             } else if (order.status == OrderStatus.DELIVERED.value) {
-                // Nút Đánh giá cho đơn hàng đã giao
                 Spacer(modifier = Modifier.height(8.dp))
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.End
                 ) {
-                    Button(
-                        onClick = {
-                            navController.navigate("feedbackScreen/${order.userID}/${order.productId}")
-                        },
-                        colors = ButtonDefaults.buttonColors(backgroundColor = Color.Blue),
-                        shape = RoundedCornerShape(8.dp)
-                    ) {
-                        Text(
-                            text = if (language == "en") "Review" else "Đánh giá",
-                            color = Color.White,
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Medium
-                        )
+                    if (!order.isReviewed) {
+                        Button(
+                            onClick = {
+                                navController.navigate("feedbackScreen/${order.userID}/${order.productId}/${order.id}")
+                            },
+                            colors = ButtonDefaults.buttonColors(backgroundColor = Color.Blue),
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            Text(
+                                text = if (language == "en") "Review" else "Đánh giá",
+                                color = Color.White,
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+                    } else {
+                        Button(
+                            onClick = {
+                                navController.navigate("productDetail/${order.productId}/${order.userID}")
+                            },
+                            colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFF4CAF50)), // Màu xanh lá cây
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            Text(
+                                text = if (language == "en") "Buy Again" else "Mua lại",
+                                color = Color.White,
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
                     }
                 }
             }

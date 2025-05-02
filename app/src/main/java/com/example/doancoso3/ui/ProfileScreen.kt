@@ -22,7 +22,7 @@ import com.example.doancoso3.model.User
 import com.example.doancoso3.viewmodel.LanguageViewModel
 
 @Composable
-fun ProfileScreen(navController: NavController, userId: String, userRepo: UserFirestoreRepository,languageViewModel: LanguageViewModel) {
+fun ProfileScreen(navController: NavController, userId: String,userRepo: UserFirestoreRepository,languageViewModel: LanguageViewModel) {
     val language by languageViewModel.language.collectAsState()
     val user = remember { mutableStateOf<User?>(null) }
     var selectedNavItem by remember { mutableStateOf(3) }
@@ -168,7 +168,7 @@ fun ProfileMenu(navController: NavController, userId: String, language: String) 
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(vertical = 6.dp)
-                    .clickable { navController.navigate("reviews/$userId") }
+                    .clickable { navController.navigate("my_feedback_screen/$userId") }
             ) {
                 Card(
                     modifier = Modifier.fillMaxWidth(),

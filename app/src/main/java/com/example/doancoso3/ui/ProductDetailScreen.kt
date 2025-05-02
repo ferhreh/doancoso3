@@ -1,5 +1,6 @@
 package com.example.doancoso3.ui
 
+import android.annotation.SuppressLint
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -41,7 +42,12 @@ import android.graphics.BitmapFactory
 import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.filled.ArrowForward
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.res.painterResource
+import com.example.doancoso3.R
+import com.example.doancoso3.data.FeedbackFirestoreRepository
+import com.example.doancoso3.data.OrderFirestoreRepository
 import com.example.doancoso3.data.ProductFirestoreRepository
 import com.example.doancoso3.model.Product
 import com.example.doancoso3.viewmodel.FavoritesViewModel
@@ -50,6 +56,8 @@ import java.text.NumberFormat
 import java.util.Locale
 
 
+
+@SuppressLint("DefaultLocale")
 @Composable
 fun ProductDetailScreen(
     userId: String,
@@ -62,19 +70,43 @@ fun ProductDetailScreen(
     val language by languageViewModel.language.collectAsState()
     val context = LocalContext.current
     val repository = remember { ProductFirestoreRepository() }
+    val orderRepository = remember { OrderFirestoreRepository() }
+    val feedbackRepository = remember { FeedbackFirestoreRepository() }
 
     var product by remember { mutableStateOf<Product?>(null) }
     var isLoading by remember { mutableStateOf(true) }
+    var soldCount by remember { mutableStateOf(0) }
+    var averageRating by remember { mutableStateOf(0f) }
+    var feedbackCount by remember { mutableStateOf(0) }
 
-    // Fetch sản phẩm từ Firestore khi productId thay đổi
+    // Fetch product and related data
     LaunchedEffect(productId) {
-        val result = repository.getProductById(productId)
-        product = result
-        isLoading = false
+        try {
+            // Get product details
+            val productResult = repository.getProductById(productId)
+            product = productResult
+
+            // Count sold items from orders
+            val allOrders = orderRepository.getAllOrders()
+            soldCount = allOrders
+                .filter { it.productId == productId && it.status >= 2 } // Only count completed orders
+                .sumOf { it.soLuong }
+
+            // Get average rating and feedback count
+            val feedbacks = feedbackRepository.getFeedbacksByProductId(productId)
+            averageRating = if (feedbacks.isNotEmpty()) {
+                feedbacks.sumOf { it.rating.toDouble() }.toFloat() / feedbacks.size
+            } else {
+                0f
+            }
+            feedbackCount = feedbacks.size
+            isLoading = false
+        } catch (e: Exception) {
+            isLoading = false
+        }
     }
 
-
-    // Trạng thái UI
+    // UI states
     val quantity = remember { mutableStateOf(1) }
     val selectedColor = remember { mutableStateOf(Color(0xFF222222)) }
 
@@ -247,14 +279,88 @@ fun ProductDetailScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(6.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
+            // Add sold count
             Text(
-                text = if (language == "vi") "Không tìm thấy sản phẩm" else "Product not found",
-                color = Color.Gray
+                text = if (language == "vi") "Đã bán: $soldCount" else "Sold: $soldCount",
+                fontSize = 14.sp,
+                color = Color.Gray,
+                modifier = Modifier.padding(start = 16.dp)
             )
 
-            Spacer(modifier = Modifier.height(6.dp))
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Add rating card
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp)
+                    .border(
+                        width = 1.dp,
+                        color = Color.LightGray,
+                        shape = RoundedCornerShape(8.dp)
+                    ), // Thêm viền
+                shape = RoundedCornerShape(8.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.White),
+                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            text = String.format("%.1f", averageRating),
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.Black
+                        )
+
+                        Spacer(modifier = Modifier.width(4.dp))
+
+                        Icon(
+                            painter = painterResource(id = R.drawable.star_on),
+                            contentDescription = "Star",
+                            tint = Color(0xFFFFC107),
+                            modifier = Modifier.size(20.dp)
+                        )
+
+                        Spacer(modifier = Modifier.width(8.dp))
+
+                        Text(
+                            text = "($feedbackCount)",
+                            fontSize = 14.sp,
+                            color = Color.Gray
+                        )
+                    }
+
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.clickable {
+                            navController.navigate("feedback_product_screen/$productId")
+                        }
+                    ) {
+                        Text(
+                            text = if (language == "vi") "Tất cả" else "All",
+                            fontSize = 14.sp,
+                            color = Color.Black
+                        )
+
+                        Icon(
+                            imageVector = Icons.Default.ArrowForward,
+                            contentDescription = "View All",
+                            tint = Color.Black,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
 
             val moTaFormatted = product!!.MoTa.replace(" -", "\n-")
 
@@ -276,7 +382,7 @@ fun ProductDetailScreen(
             ) {
                 IconButton(
                     onClick = {
-                        favoritesViewModel.addToFavorites(product!!,userId)
+                        favoritesViewModel.addToFavorites(product!!, userId)
                         Toast.makeText(
                             context,
                             if (language == "vi") "Đã thêm vào danh sách yêu thích" else "Added to favorites",
@@ -321,21 +427,6 @@ fun formatCurrency(amount: Int): String {
     val format = NumberFormat.getCurrencyInstance(Locale("vi", "VN"))
     return format.format(amount)
 }
-@Composable
-fun ColorOptions(selectedColor: MutableState<Color>) {
-    Column(
-        modifier = Modifier
-            .fillMaxHeight()
-            .padding(vertical = 8.dp),
-        verticalArrangement = Arrangement.SpaceEvenly,
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        ColorOption(Color(0xFF222222), selectedColor)
-        ColorOption(Color(0xFFFFFFFF), selectedColor)
-        ColorOption(Color(0xFFFF99CC), selectedColor)
-    }
-}
-
 @Composable
 fun ColorOption(color: Color, selectedColor: MutableState<Color>) {
     Box(
