@@ -32,6 +32,7 @@ import com.example.doancoso3.model.Order
 import com.example.doancoso3.model.Product
 import com.example.doancoso3.model.User
 import com.example.doancoso3.ui.theme.Doancoso3Theme
+import com.example.doancoso3.util.NotificationViewModelProvider
 import com.example.doancoso3.viewmodel.*
 
 class MainActivity : ComponentActivity() {
@@ -72,7 +73,7 @@ class MainActivity : ComponentActivity() {
 
             composable("home_screen/{userId}") { backStackEntry ->
                 val userId = backStackEntry.arguments?.getString("userId") ?: ""
-                HomeScreen(navController, userId, languageViewModel)
+                HomeScreen(navController, userId, languageViewModel, cartViewModel)
             }
 
             composable("productDetail/{productId}/{userId}") { backStackEntry ->
@@ -202,7 +203,12 @@ class MainActivity : ComponentActivity() {
             }
             composable("settings_screen/{userId}") { backStackEntry ->
                 val userId = backStackEntry.arguments?.getString("userId") ?: ""
-                SettingsScreen(navController = navController, userId = userId, languageViewModel = languageViewModel)
+                SettingsScreen(
+                    navController = navController,
+                    userId = userId,
+                    languageViewModel = languageViewModel,
+                    notificationViewModel = NotificationViewModelProvider.getInstance()
+                )
             }
             composable("my_feedback_screen/{userId}") { backStackEntry ->
                 val userId = backStackEntry.arguments?.getString("userId") ?: ""
@@ -218,6 +224,15 @@ class MainActivity : ComponentActivity() {
                     productId = productId,
                     navController = navController,
                     languageViewModel = languageViewModel
+                )
+            }
+            composable("notification_screen/{userId}") { backStackEntry ->
+                val userId = backStackEntry.arguments?.getString("userId") ?: ""
+                NotificationScreen(
+                    navController = navController,
+                    userId = userId,
+                    languageViewModel = languageViewModel,
+                    notificationViewModel = NotificationViewModelProvider.getInstance() // Sử dụng chung instance
                 )
             }
         }

@@ -46,6 +46,8 @@ fun SearchScreen(
     val favorites by searchViewModel.favorites.collectAsState()
     val coroutineScope = rememberCoroutineScope()
     val language by languageViewModel.language.collectAsState()
+    val suggestedKeyword by searchViewModel.suggestedKeyword.collectAsState()
+    var hasSearched by remember { mutableStateOf(false) }
     // Load initial data
     LaunchedEffect(true) {
         launch {
@@ -85,6 +87,7 @@ fun SearchScreen(
             onSearchQueryChange = { searchQuery = it },
             onSearch = {
                 coroutineScope.launch {
+                    hasSearched = true
                     searchViewModel.searchProducts(searchQuery)
                 }
             },
@@ -106,7 +109,36 @@ fun SearchScreen(
                     ProductGrid(products = searchResults, navController = navController, userId = userId)
                 }
             }
-
+            if (hasSearched && searchResults.isEmpty() && searchQuery.isNotEmpty()) {
+                item {
+                    Text(
+                        text = if (language == "en")
+                            "No results for \"$searchQuery\""
+                        else
+                            "Không tìm thấy kết quả cho \"$searchQuery\"",
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 18.sp
+                    )
+                    suggestedKeyword?.let { suggestion ->
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = if (language == "en")
+                                "Try searching for \"$suggestion\" instead?"
+                            else
+                                "Bạn có muốn thử tìm với \"$suggestion\" không?",
+                            color = Color.Gray,
+                            fontSize = 16.sp,
+                            modifier = Modifier.clickable {
+                                searchQuery = suggestion
+                                coroutineScope.launch {
+                                    hasSearched = true
+                                    searchViewModel.searchProducts(suggestion)
+                                }
+                            }
+                        )
+                    }
+                }
+            }
             // Bestsellers Section
             if (bestsellers.isNotEmpty()) {
                 item {

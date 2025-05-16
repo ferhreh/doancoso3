@@ -41,6 +41,8 @@ import kotlinx.coroutines.launch
 import java.text.NumberFormat
 import java.util.Locale
 import androidx.compose.foundation.lazy.grid.items
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.doancoso3.viewmodel.CartViewModel
 import com.example.doancoso3.viewmodel.LanguageViewModel
 
 data class Filter(
@@ -55,7 +57,7 @@ val filters = listOf(
     Filter(mapOf("vi" to "Tai nghe", "en" to "Headphones"), R.drawable.headphones)
 )
 @Composable
-fun HomeScreen(navController: NavHostController, userId: String, languageViewModel: LanguageViewModel) {
+fun HomeScreen(navController: NavHostController, userId: String, languageViewModel: LanguageViewModel, cartViewModel: CartViewModel ) {
     var selectedFilter by remember { mutableStateOf(filters[0]) }
     var selectedNavItem by remember { mutableStateOf(0) }
     val language by languageViewModel.language.collectAsState()
@@ -63,7 +65,6 @@ fun HomeScreen(navController: NavHostController, userId: String, languageViewMod
     val filteredProducts = remember { mutableStateListOf<Product>() }
     val repo = remember { ProductFirestoreRepository() }
     val coroutineScope = rememberCoroutineScope()
-
     LaunchedEffect(Unit) {
         coroutineScope.launch {
             val fetchedProducts = repo.getProducts()
@@ -137,7 +138,7 @@ fun HomeScreen(navController: NavHostController, userId: String, languageViewMod
 
             LazyVerticalGrid(columns = GridCells.Fixed(2), contentPadding = PaddingValues(16.dp), modifier = Modifier.padding(8.dp)) {
                 items(filteredProducts) { item ->
-                    HomeItem(item, navController, userId)
+                    HomeItem(item, navController, userId, cartViewModel)
                 }
             }
         }
@@ -145,7 +146,8 @@ fun HomeScreen(navController: NavHostController, userId: String, languageViewMod
 }
 
 @Composable
-    fun HomeItem(item: Product, navController: NavHostController, userId: String) {
+    fun HomeItem(item: Product, navController: NavHostController, userId: String, cartViewModel: CartViewModel) {
+    val quantity = remember { mutableStateOf(1) }
     Box(
         modifier = Modifier
             .padding(8.dp)
@@ -177,7 +179,11 @@ fun HomeScreen(navController: NavHostController, userId: String, languageViewMod
                             .padding(8.dp)
                             .size(32.dp)
                             .background(Color.Gray, shape = RoundedCornerShape(10.dp))
-                            .clickable {},
+                            .clickable {
+                                cartViewModel.addToCart(userId, item, quantity.value) {
+                                    navController.navigate("cartScreen/$userId")
+                                }
+                            },
                         contentAlignment = Alignment.Center
                     ) {
                         Image(

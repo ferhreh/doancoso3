@@ -29,14 +29,12 @@ object ImgurUploadHelper {
             val byteArray = inputStream?.readBytes()
 
             if (byteArray == null || byteArray.isEmpty()) {
-                Log.e("IMGUR_UPLOAD", "File byteArray is null or empty")
                 return@withContext null
             }
 
             val mimeType = context.contentResolver.getType(uri)
             val type = mimeType ?: if (isVideo) "video/mp4" else "image/jpeg"
 
-            Log.d("IMGUR_UPLOAD", "Uploading file with type: $type and size: ${byteArray.size}")
 
             val requestBody = MultipartBody.Builder()
                 .setType(MultipartBody.FORM)
@@ -52,7 +50,6 @@ object ImgurUploadHelper {
             val response = client.newCall(request).execute()
             response.use {
                 val responseBodyString = it.body?.string()
-                Log.d("IMGUR_UPLOAD", "Response: $responseBodyString")
 
                 if (it.isSuccessful && responseBodyString != null) {
                     val json = JSONObject(responseBodyString)

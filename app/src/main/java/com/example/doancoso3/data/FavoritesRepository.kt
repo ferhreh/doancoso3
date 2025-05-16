@@ -9,7 +9,7 @@ class FavoritesRepository {
 
     suspend fun addFavorite(product: Product, userId: String) {
         val data = hashMapOf(
-            "productId" to product.ID,  // ✅ thêm dòng này
+            "productId" to product.ID,
             "TenSP" to product.TenSP,
             "GiaTien" to product.GiaTien,
             "HinhAnh" to product.HinhAnh,

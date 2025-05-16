@@ -24,10 +24,12 @@ import androidx.navigation.NavController
 import com.example.doancoso3.R
 import com.example.doancoso3.data.CartItem
 import com.example.doancoso3.model.UserAddress
+import com.example.doancoso3.util.NotificationViewModelProvider
 import com.example.doancoso3.viewmodel.AddressViewModel
 import com.example.doancoso3.viewmodel.CartViewModel
 import com.example.doancoso3.viewmodel.LanguageViewModel
 import com.example.doancoso3.viewmodel.OrderViewModel
+import java.util.UUID
 
 @Composable
 fun CheckoutScreen(navController: NavController, cartViewModel: CartViewModel, userId: String, addressViewModel: AddressViewModel, orderViewModel: OrderViewModel, languageViewModel: LanguageViewModel) {
@@ -169,6 +171,16 @@ fun CheckoutScreen(navController: NavController, cartViewModel: CartViewModel, u
                             ) {
                                 // Đây là callback khi đặt hàng thành công
                                 cartViewModel.clearCart(userId)
+                                // Gửi thông báo về đơn hàng
+                                val productNames = cartItems.joinToString(", ") { it.product.TenSP }
+                                NotificationViewModelProvider.getInstance().addNotification(
+                                    NotificationItem(
+                                        id = UUID.randomUUID().toString(),
+                                        type = NotificationType.ORDER_PLACED,
+                                        productName = productNames,
+                                        timestamp = System.currentTimeMillis()
+                                    )
+                                )
                                 navController.navigate("order_success/$userId")
                             }
                         } else {

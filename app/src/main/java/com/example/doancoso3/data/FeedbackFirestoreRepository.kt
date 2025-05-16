@@ -42,16 +42,11 @@ class FeedbackFirestoreRepository {
         val feedbackList = mutableListOf<Feedback>()
 
         try {
-            // Log đầu vào
-            Log.d("FeedbackDebug", "Bắt đầu load feedbacks cho productId: '$productId'")
-
             // Lấy tất cả document trong collection "feedbacks" (mỗi document là 1 userId)
             val usersSnapshot = db.collection("feedbacks").get().await()
 
             for (userDoc in usersSnapshot.documents) {
                 val userId = userDoc.id
-                Log.d("FeedbackDebug", "Đang kiểm tra userId: $userId")
-
                 val feedbacksSnapshot = feedbacksCollection
                     .document(userId)
                     .collection("feedback_items")
@@ -59,8 +54,6 @@ class FeedbackFirestoreRepository {
                     .orderBy("timestamp", Query.Direction.DESCENDING)
                     .get()
                     .await()
-
-                Log.d("FeedbackDebug", "Tìm thấy ${feedbacksSnapshot.size()} feedback từ user $userId cho sản phẩm $productId")
 
                 for (doc in feedbacksSnapshot.documents) {
                     try {

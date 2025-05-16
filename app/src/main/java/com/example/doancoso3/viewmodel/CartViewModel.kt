@@ -17,10 +17,13 @@ class CartViewModel : ViewModel() {
 
     private var hasLoadedOnce = false
 
-    fun loadCartItems(userId: String, forceReload: Boolean = false) {
-        if (isLoading.value || (hasLoadedOnce && !forceReload)) return
-        isLoading.value = true
+    fun loadCartItems(userId: String, forceReload: Boolean = false, onComplete: () -> Unit = {}) {
+        if (isLoading.value || (hasLoadedOnce && !forceReload)) {
+            onComplete() // vẫn gọi callback nếu không cần reload
+            return
+        }
 
+        isLoading.value = true
         db.collection("carts").document(userId).collection("items")
             .get()
             .addOnSuccessListener { result ->
@@ -52,10 +55,11 @@ class CartViewModel : ViewModel() {
             }
             .addOnCompleteListener {
                 isLoading.value = false
+                onComplete() // báo hiệu xong
             }
     }
 
-    fun addToCart(userId: String, product: Product, quantity: Int = 1) {
+    fun addToCart(userId: String, product: Product, quantity: Int = 1, onSuccess: () -> Unit = {}) {
         val itemRef = db.collection("carts").document(userId)
             .collection("items").document(product.ID)
 
@@ -78,12 +82,14 @@ class CartViewModel : ViewModel() {
             )
             transaction.set(itemRef, data)
         }.addOnSuccessListener {
-            loadCartItems(userId, forceReload = true)
+            // Đợi load xong mới gọi onSuccess (chuyển trang)
+            loadCartItems(userId, forceReload = true) {
+                onSuccess()
+            }
         }.addOnFailureListener {
             Log.e("CartViewModel", "Lỗi khi thêm vào giỏ hàng", it)
         }
     }
-
     fun increaseQuantity(userId: String, cartItem: CartItem) {
         val itemRef = db.collection("carts").document(userId)
             .collection("items").document(cartItem.product.ID)
@@ -117,17 +123,6 @@ class CartViewModel : ViewModel() {
                     Log.e("CartViewModel", "Lỗi khi giảm số lượng", it)
                 }
         }
-    }
-
-    private fun updateQuantity(userId: String, productId: String, newQuantity: Int) {
-        val itemRef = db.collection("carts").document(userId)
-            .collection("items").document(productId)
-
-        itemRef.update("quantity", newQuantity)
-            .addOnSuccessListener { loadCartItems(userId, forceReload = true) }
-            .addOnFailureListener {
-                Log.e("CartViewModel", "Lỗi khi cập nhật số lượng", it)
-            }
     }
 
     fun removeFromCart(userId: String, productId: String) {

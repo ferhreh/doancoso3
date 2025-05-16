@@ -38,8 +38,10 @@ import com.example.doancoso3.model.Feedback
 import com.example.doancoso3.model.Order
 import com.example.doancoso3.model.Product
 import com.example.doancoso3.util.ImgurUploadHelper
+import com.example.doancoso3.util.NotificationViewModelProvider
 import com.example.doancoso3.viewmodel.LanguageViewModel
 import kotlinx.coroutines.launch
+import java.util.UUID
 
 @Composable
 fun FeedbackScreen(
@@ -327,19 +329,15 @@ fun FeedbackScreen(
 
                         // Upload ảnh
                         for (uri in selectedImages) {
-                            Log.d("UPLOAD_IMAGE", "Preparing image: $uri")
                             val url = ImgurUploadHelper.uploadImage(uri, context)
                             if (url != null) {
                                 uploadedImageUrls.add(url)
-                                Log.d("UPLOAD_IMAGE", "Success: $url")
                             } else {
                                 Log.e("UPLOAD_IMAGE", "Failed: $uri")
                             }
                         }
-
                         // Upload video nếu có
                         uploadedVideoUrl = selectedVideo?.let { videoUri ->
-                            Log.d("UPLOAD_VIDEO", "Preparing video: $videoUri")
                             ImgurUploadHelper.uploadVideo(videoUri, context)
                         }
 
@@ -373,6 +371,14 @@ fun FeedbackScreen(
                 } else {
                     Log.w("FEEDBACK_VALIDATE", "Feedback phải có ít nhất 10 từ")
                 }
+                NotificationViewModelProvider.getInstance().addNotification(
+                    NotificationItem(
+                        id = UUID.randomUUID().toString(),
+                        type = NotificationType.FEEDBACK_SENT,
+                        productName = product.TenSP,
+                        timestamp = System.currentTimeMillis()
+                    )
+                )
             },
             modifier = Modifier
                 .height(56.dp)

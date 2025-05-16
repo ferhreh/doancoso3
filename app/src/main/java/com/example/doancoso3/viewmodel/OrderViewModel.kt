@@ -64,7 +64,7 @@ class OrderViewModel : ViewModel() {
 
             if (allSuccess) {
                 orderPlaced.value = true
-                onSuccess() // ✅ Gọi ngay sau khi đặt hàng thành công
+                onSuccess()
 
                 // Tiếp tục delay để xử lý đơn hàng tự động (sau 2 phút)
                 delay(20000)

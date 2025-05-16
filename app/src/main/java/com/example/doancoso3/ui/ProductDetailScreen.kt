@@ -400,8 +400,9 @@ fun ProductDetailScreen(
 
                 Button(
                     onClick = {
-                        cartViewModel.addToCart(userId, product!!, quantity.value)
-                        navController.navigate("cartScreen/$userId")
+                        cartViewModel.addToCart(userId, product!!, quantity.value) {
+                            navController.navigate("cartScreen/$userId")
+                        }
                     },
                     modifier = Modifier
                         .weight(1f)

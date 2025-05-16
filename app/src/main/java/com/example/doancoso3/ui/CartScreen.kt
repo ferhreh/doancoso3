@@ -29,66 +29,78 @@ import com.example.doancoso3.viewmodel.CartViewModel
 import com.example.doancoso3.viewmodel.LanguageViewModel
 
 @Composable
-fun CartScreen(cartViewModel: CartViewModel, navController: NavController, userId: String,languageViewModel: LanguageViewModel) {
+fun CartScreen(cartViewModel: CartViewModel, navController: NavController, userId: String, languageViewModel: LanguageViewModel) {
     val language by languageViewModel.language.collectAsState()
     val items = cartViewModel.cartItems
     val totalPrice = items.sumOf { it.quantity * it.product.GiaTien }
     val isLoading by cartViewModel.isLoading
+
     LaunchedEffect(userId) {
         cartViewModel.loadCartItems(userId)
     }
 
-    Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 8.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            IconButton(onClick = { navController.popBackStack() }) {
-                Icon(imageVector = Icons.Default.ArrowBack, contentDescription = "Back")
+    Box(modifier = Modifier.fillMaxSize()) {
+        Column(modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp)) {
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 8.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                IconButton(onClick = { navController.popBackStack() }) {
+                    Icon(imageVector = Icons.Default.ArrowBack, contentDescription = "Back")
+                }
+
+                Text(
+                    text = if (language == "vi") "Giỏ hàng" else "Cart",
+                    fontSize = 24.sp,
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(modifier = Modifier.size(18.dp))
             }
 
-            Text(
-                text = if (language == "vi") "Giỏ hàng" else "Cart",
-                fontSize = 24.sp,
-                fontWeight = FontWeight.Bold
-            )
-            Spacer(modifier = Modifier.size(18.dp))
-        }
-        when {
-            isLoading -> {
+            if (isLoading) {
                 CircularProgressIndicator(modifier = Modifier.align(Alignment.CenterHorizontally))
-            }
-            items.isEmpty() -> {
+            } else if (items.isEmpty()) {
                 Text(
                     text = if (language == "vi") "Giỏ hàng đang trống" else "Your cart is empty",
                     fontSize = 18.sp,
-                    modifier = Modifier.align(Alignment.CenterHorizontally)
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .wrapContentSize(Alignment.Center)
                 )
-            }
-            else -> {
+            } else {
                 LazyColumn(modifier = Modifier.weight(1f)) {
                     items(items) { item ->
                         CartItemBox(item = item, cartViewModel = cartViewModel, userId = userId)
                         Divider(color = Color.Gray, thickness = 1.dp)
                     }
                 }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Text(
+                    text = if (language == "vi") "Tổng: ${formatCurrency(totalPrice.toInt())}" else "Total: ${formatCurrency(totalPrice.toInt())}",
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.align(Alignment.End)
+                )
             }
+
+            Spacer(modifier = Modifier.height(80.dp)) // giữ chỗ cho nút thanh toán
         }
-        Spacer(modifier = Modifier.height(8.dp))
 
-        Text(
-            text = if (language == "vi") "Tổng: ${formatCurrency(totalPrice.toInt())}" else "Total: ${formatCurrency(totalPrice.toInt())}",
-            fontSize = 18.sp,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.align(Alignment.End)
-        )
-
+        // Nút thanh toán luôn ở dưới cùng
         Button(
             onClick = { navController.navigate("checkoutScreen/$userId") },
-            modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(16.dp)
+                .fillMaxWidth(),
             shape = RoundedCornerShape(8.dp),
             colors = ButtonDefaults.buttonColors(backgroundColor = Color.Black)
         ) {
@@ -134,7 +146,7 @@ fun CartItemBox(item: CartItem, cartViewModel: CartViewModel, userId: String) {
             }
 
             IconButton(onClick = {
-                cartViewModel.removeFromCart(userId, item.product.TenSP)
+                cartViewModel.removeFromCart(userId, item.product.ID)
             }) {
                 Image(
                     painter = painterResource(id = R.drawable.ic_delete),

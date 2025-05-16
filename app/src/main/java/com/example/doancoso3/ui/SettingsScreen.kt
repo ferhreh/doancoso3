@@ -23,6 +23,7 @@ import androidx.navigation.NavController
 import com.example.doancoso3.data.UserFirestoreRepository
 import com.example.doancoso3.model.User
 import com.example.doancoso3.viewmodel.LanguageViewModel
+import com.example.doancoso3.viewmodel.NotificationViewModel
 import kotlinx.coroutines.launch
 
 
@@ -30,7 +31,8 @@ import kotlinx.coroutines.launch
 fun SettingsScreen(
     navController: NavController,
     userId: String,
-    languageViewModel: LanguageViewModel
+    languageViewModel: LanguageViewModel,
+    notificationViewModel: NotificationViewModel
 ) {
     val userRepository = remember { UserFirestoreRepository() }
     val coroutineScope = rememberCoroutineScope()
@@ -89,10 +91,23 @@ fun SettingsScreen(
                 user?.let {
                     val updatedUser = it.copy(id = it.id ?: userId, password = newPassword)
                     userRepository.addUser(updatedUser)
+
+                    // Hiển thị thông báo thành công ngay tại chỗ
                     passwordSuccess = true
                     passwordError = null
                     currentPassword = ""
                     newPassword = ""
+
+                    // Tạo notification mới
+                    val notification = NotificationItem(
+                        id = System.currentTimeMillis().toString(),
+                        type = NotificationType.PASSWORD_CHANGED,
+                        timestamp = System.currentTimeMillis(),
+                        isRead = false
+                    )
+
+                    // Thêm vào NotificationViewModel
+                    notificationViewModel.addNotification(notification)
                 }
             } else {
                 passwordError = if (language == "en") "Current password is incorrect" else "Mật khẩu hiện tại không chính xác"
@@ -273,7 +288,7 @@ fun SettingsScreen(
 
                     Button(
                         onClick = { updatePassword(language) },
-                        colors = ButtonDefaults.buttonColors(containerColor = Color.White),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color.Black),
                         modifier = Modifier.align(Alignment.End)
                     ) {
                         Text(text = if (language == "en") "Update Password" else "Cập nhật mật khẩu")

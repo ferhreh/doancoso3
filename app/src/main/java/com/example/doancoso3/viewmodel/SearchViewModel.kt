@@ -1,6 +1,7 @@
 package com.example.doancoso3.viewmodel
 
 import android.util.Log
+import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -26,17 +27,43 @@ class SearchViewModel(
     private val _favorites = MutableStateFlow<List<Product>>(emptyList())
     val favorites: StateFlow<List<Product>> = _favorites
 
+    private val _suggestedKeyword = MutableStateFlow<String?>(null)
+    val suggestedKeyword: StateFlow<String?> = _suggestedKeyword
+
     fun searchProducts(query: String) {
         viewModelScope.launch {
             try {
+                // normalizedQuery loại bỏ khoảng trắng đầu và cuối chuỗi
+                val normalizedQuery = query.trim()
+                // kiểm tra chỗi có ký tự đặt biệt không
+                val onlySpecialChars = normalizedQuery.all { !it.isLetterOrDigit() }
+
                 val result = db.collection("products").get().await()
-                val filtered = result.documents.mapNotNull { it.toObject(Product::class.java) }
-                    .filter {
-                        it.TenSP.contains(query, ignoreCase = true) ||
-                                it.MoTa.contains(query, ignoreCase = true) ||
-                                it.DanhMuc.contains(query, ignoreCase = true)
+                val products = result.documents.mapNotNull { it.toObject(Product::class.java) }
+
+                val filtered = if (onlySpecialChars) {
+                    emptyList()
+                } else {
+                    products.filter { product ->
+                        product.TenSP.contains(normalizedQuery, ignoreCase = true) ||
+                                product.MoTa.contains(normalizedQuery, ignoreCase = true) ||
+                                product.DanhMuc.contains(normalizedQuery, ignoreCase = true)
                     }
+                }
+
                 _searchResults.value = filtered
+
+                if (filtered.isEmpty() && !onlySpecialChars) {
+                    val suggestions = products.map { it.TenSP }
+                        .filterNot { it.equals(normalizedQuery, ignoreCase = true) }
+                        .distinct()
+                        .filter { it.lowercase().contains(normalizedQuery.take(2).lowercase()) }
+
+                    _suggestedKeyword.value = suggestions.firstOrNull()
+                } else {
+                    _suggestedKeyword.value = null
+                }
+
             } catch (e: Exception) {
                 Log.e("SearchViewModel", "Error searching products", e)
             }

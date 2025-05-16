@@ -20,7 +20,9 @@ import com.example.doancoso3.viewmodel.OrderViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import androidx.compose.material.icons.filled.Done
+import com.example.doancoso3.util.NotificationViewModelProvider
 import com.example.doancoso3.viewmodel.LanguageViewModel
+import java.util.UUID
 
 // Enum class để lưu trạng thái đơn hàng
 enum class OrderStatus(val value: Int, val label: String) {
@@ -236,8 +238,6 @@ fun OrderItem(
     onDelivered: () -> Unit = {},
     language: String
 ) {
-    //bien kiem tra danh gia
-    var isReviewed: Boolean = false
     val shippingFee = 30000.0
 
     Card(
@@ -379,62 +379,6 @@ fun OrderItem(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    // Nút Đã giao (chỉ hiện khi đã hoàn tất đặt hàng)
-                    if (orderViewModel.isOrderAutoDeliverable(order)) {
-                        Button(
-                            onClick = {
-                                orderViewModel.updateOrderStatus(
-                                    userId = order.userID,
-                                    documentId = order.id,
-                                    status = OrderStatus.DELIVERED.value,
-                                    onResult = { success ->
-                                        if (success) {
-                                            onStatusChanged()
-                                            onDelivered()
-                                        }
-                                    }
-                                )
-                            },
-                            colors = ButtonDefaults.buttonColors(backgroundColor = Color.Green),
-                            shape = RoundedCornerShape(8.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Done,
-                                contentDescription = "Đã giao",
-                                tint = Color.White,
-                                modifier = Modifier.size(20.dp)
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = if (language == "en") "Delivered" else "Đã giao",
-                                color = Color.White,
-                                fontSize = 14.sp,
-                                fontWeight = FontWeight.Medium
-                            )
-                        }
-                    } else {
-                        Button(
-                            onClick = { /* không làm gì vì chưa đủ điều kiện */ },
-                            colors = ButtonDefaults.buttonColors(backgroundColor = Color.Gray),
-                            enabled = false,
-                            shape = RoundedCornerShape(8.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Done,
-                                contentDescription = "Đã giao",
-                                tint = Color.White,
-                                modifier = Modifier.size(20.dp)
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = if (language == "en") "Delivered" else "Đã giao",
-                                color = Color.White,
-                                fontSize = 14.sp,
-                                fontWeight = FontWeight.Medium
-                            )
-                        }
-                    }
-
                     // Nút Hủy đơn
                     Button(
                         onClick = {
@@ -445,6 +389,14 @@ fun OrderItem(
                                 status = OrderStatus.CANCELLED.value,
                                 onResult = { success ->
                                     if (success) {
+                                        NotificationViewModelProvider.getInstance().addNotification(
+                                            NotificationItem(
+                                                id = UUID.randomUUID().toString(),
+                                                type = NotificationType.ORDER_CANCELLED,
+                                                productName = order.productName,
+                                                timestamp = System.currentTimeMillis()
+                                            )
+                                        )
                                         onStatusChanged()
                                     }
                                 }
